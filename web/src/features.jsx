@@ -22,7 +22,7 @@ function GrenadeFinder({ match }) {
     return out;
   }, [types, roundFilter, playerFilter]);
 
-  const typeColor = (type) => ({ smoke: '#b8c4d8', flash: '#ffffff', he: '#ffd66b', molotov: '#ff7830' }[type]);
+  const typeColor = (type) => ({ smoke: '#b8c4d8', flash: '#ffffff', he: '#ffd66b', molotov: '#ff2e00' }[type]);
 
   return (
     <div className="fade-in">
