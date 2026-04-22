@@ -1,4 +1,6 @@
+import { createReadStream } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import type {
   BombEvent,
@@ -51,27 +53,43 @@ export async function loadMatchFromJsonFolder(outputFolder: string): Promise<Mat
   const jsonStat = await stat(jsonPath);
   log(`Reading JSON (${(jsonStat.size / (1024 * 1024)).toFixed(1)} MB) from ${jsonPath}`);
 
-  // Memory-critical section. For a 280 MB demo the JSON can exceed 500 MB,
-  // and each of (file-string, precision-rewritten string, parsed object tree)
-  // is the same size or larger. We drop each intermediate immediately and
-  // rebind to let-vars so the GC can reclaim them before the next allocation.
-  // Previously these were held in `const`s that lived the whole function and
-  // pushed peak RSS into multi-GB territory on top of whatever csda left.
-  const t0 = Date.now();
-  let buf: string | null = await readFile(jsonPath, 'utf8');
-  log(`Read JSON in ${Date.now() - t0}ms (${mem()})`);
+  // V8 caps single-string length at ~512 MB (2^29 - 24). csda emits per-tick
+  // player/grenade/inferno positions at the demo's full tick rate (~64 Hz),
+  // so a normal-length match exceeds 700 MB and any overtime match exceeds 1 GB.
+  // Above the threshold we stream-parse instead of materializing the whole
+  // file as a JS string. Native JSON.parse stays for smaller files because
+  // it's significantly faster than the streaming tokenizer.
+  const STREAM_PARSE_THRESHOLD_BYTES = 400 * 1024 * 1024;
+  const useStreaming = jsonStat.size > STREAM_PARSE_THRESHOLD_BYTES;
 
   let raw: unknown;
   let rawDate: unknown;
   try {
-    const t1 = Date.now();
-    let rewritten: string | null = precisionSafeRewrite(buf);
-    buf = null; // release the untouched copy — rewritten supersedes it
-    log(`Precision-safe rewrite in ${Date.now() - t1}ms (${mem()})`);
-    const t2 = Date.now();
-    raw = JSON.parse(rewritten);
-    rewritten = null; // release the rewritten copy — parsed tree supersedes it
-    log(`JSON.parse in ${Date.now() - t2}ms (${mem()})`);
+    if (useStreaming) {
+      log(`Using streaming parser (file > ${STREAM_PARSE_THRESHOLD_BYTES / (1024 * 1024)} MB threshold).`);
+      const t0 = Date.now();
+      raw = await streamParseJsonFile(jsonPath, log);
+      log(`Streaming JSON parse in ${Date.now() - t0}ms (${mem()})`);
+    } else {
+      // Memory-critical section. For a 280 MB demo the JSON can exceed 500 MB,
+      // and each of (file-string, precision-rewritten string, parsed object tree)
+      // is the same size or larger. We drop each intermediate immediately and
+      // rebind to let-vars so the GC can reclaim them before the next allocation.
+      // Previously these were held in `const`s that lived the whole function and
+      // pushed peak RSS into multi-GB territory on top of whatever csda left.
+      const t0 = Date.now();
+      let buf: string | null = await readFile(jsonPath, 'utf8');
+      log(`Read JSON in ${Date.now() - t0}ms (${mem()})`);
+
+      const t1 = Date.now();
+      let rewritten: string | null = precisionSafeRewrite(buf);
+      buf = null; // release the untouched copy — rewritten supersedes it
+      log(`Precision-safe rewrite in ${Date.now() - t1}ms (${mem()})`);
+      const t2 = Date.now();
+      raw = JSON.parse(rewritten);
+      rewritten = null; // release the rewritten copy — parsed tree supersedes it
+      log(`JSON.parse in ${Date.now() - t2}ms (${mem()})`);
+    }
   } catch (err) {
     throw new Error(`Failed to parse analyzer JSON at ${jsonPath}: ${(err as Error).message}`);
   }
@@ -119,6 +137,79 @@ export async function loadMatchFromJsonFolder(outputFolder: string): Promise<Mat
  */
 function precisionSafeRewrite(text: string): string {
   return text.replace(/([:\[,]\s*)(\d{16,})(\s*[,\]}])/g, '$1"$2"$3');
+}
+
+// stream-json is CommonJS; createRequire avoids any ESM/CJS interop quirks.
+const requireCjs = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const streamJsonParser = requireCjs('stream-json/parser.js');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const StreamJsonAssembler = requireCjs('stream-json/assembler.js');
+
+/**
+ * Streaming Assembler that preserves precision for 16+ digit integers, the
+ * token-level equivalent of `precisionSafeRewrite`. The base Assembler calls
+ * `parseFloat` on every numeric literal, which silently rounds 64-bit steam
+ * IDs (e.g. 76561198053011290 → 76561198053011300). We intercept those tokens
+ * and route them through `stringValue` instead so they survive end-to-end.
+ *
+ * Same matching rule as the regex: only positive integer literals of 16+
+ * digits — fractional or exponent-bearing numbers go through unchanged.
+ */
+class PrecisionSafeAssembler extends StreamJsonAssembler {
+  numberValue(value: string): void {
+    if (value.length >= 16 && /^\d+$/.test(value)) {
+      super.stringValue(value);
+    } else {
+      super.numberValue(value);
+    }
+  }
+}
+
+/**
+ * Stream-parse a JSON file too large to fit in a single JS string (V8 caps
+ * strings at ~512 MB). Builds the same in-memory object tree native
+ * `JSON.parse` would produce, but without ever materializing the file as a
+ * single string. Handles 64-bit steam IDs via `PrecisionSafeAssembler`.
+ *
+ * Tradeoff: the streaming tokenizer is several times slower than native
+ * `JSON.parse` per byte, so we only invoke this above the size threshold.
+ */
+function streamParseJsonFile(jsonPath: string, log: (msg: string) => void): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const file = createReadStream(jsonPath, { highWaterMark: 4 * 1024 * 1024 });
+    // packValues + !streamValues: only the consolidated `keyValue/stringValue/
+    // numberValue` tokens are emitted, which is all the Assembler needs.
+    // Suppressing the per-character chunk tokens roughly halves token volume.
+    const parserStream = streamJsonParser.asStream({
+      packValues: true,
+      streamValues: false,
+    });
+    const asm = new PrecisionSafeAssembler();
+    asm.connectTo(parserStream);
+
+    let bytesRead = 0;
+    let nextLogAt = 100 * 1024 * 1024; // log every 100 MB
+    file.on('data', (chunk: Buffer | string) => {
+      bytesRead += chunk.length;
+      if (bytesRead >= nextLogAt) {
+        log(`...streaming parse ${(bytesRead / (1024 * 1024)).toFixed(0)} MB read`);
+        nextLogAt += 100 * 1024 * 1024;
+      }
+    });
+
+    const fail = (err: Error) => reject(err);
+    file.on('error', fail);
+    parserStream.on('error', fail);
+    parserStream.on('end', () => {
+      if (!asm.done) {
+        return reject(new Error('Streaming JSON parse ended before top-level value completed'));
+      }
+      resolve(asm.current);
+    });
+
+    file.pipe(parserStream);
+  });
 }
 
 export function normalizeMatch(raw: unknown): Match {

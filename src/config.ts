@@ -30,11 +30,12 @@ export function loadConfig(): AppConfig {
 
   const dataDir = process.env['DATA_DIR']?.trim() || path.resolve(process.cwd(), 'data');
   const demosFolderOverride = process.env['DEMOS_FOLDER']?.trim() || undefined;
-  // Off by default: -positions blows the csda JSON up ~3x (a 258 MB demo
-  // produced a 785 MB file in testing), which exceeds Node's ~512 MB max
-  // string length and breaks readFile. Enable INCLUDE_POSITIONS=true only
-  // for shorter demos (2v2, cs-style scrim lengths) where the resulting
-  // JSON fits under that cap; needed for the 2D round viewer to animate.
+  // Off by default to save disk + parse time: -positions inflates the csda
+  // JSON ~3x (a 258 MB demo → 785 MB; an overtime demo → 1.15 GB). Files
+  // above ~400 MB go through load-match.ts's streaming parser, so size is
+  // no longer a load-time blocker — but parse time roughly doubles and peak
+  // RSS climbs to 6-7 GB on long matches. Enable INCLUDE_POSITIONS=true when
+  // the 2D round viewer is needed; leave it off for scoreboard-only runs.
   const includePositions = process.env['INCLUDE_POSITIONS']?.toLowerCase() === 'true';
 
   const steamId64 = process.env['STEAM_ID64']?.trim() || undefined;

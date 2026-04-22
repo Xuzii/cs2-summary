@@ -7,14 +7,14 @@
   "scripts": {
     "postinstall": "node scripts/fetch-csda.mjs",
     "csda:update": "node scripts/fetch-csda.mjs --force",
-    "latest": "tsx --max-old-space-size=4096 src/cli/latest.ts",
-    "analyze": "tsx --max-old-space-size=4096 src/cli/analyze.ts",
-    "watch": "tsx --max-old-space-size=4096 src/cli/watch.ts",
-    "fetch": "tsx --max-old-space-size=4096 src/cli/fetch.ts",
-    "poll": "tsx --max-old-space-size=4096 src/cli/poll.ts",
+    "latest": "tsx --max-old-space-size=8192 src/cli/latest.ts",
+    "analyze": "tsx --max-old-space-size=8192 src/cli/analyze.ts",
+    "watch": "tsx --max-old-space-size=8192 src/cli/watch.ts",
+    "fetch": "tsx --max-old-space-size=8192 src/cli/fetch.ts",
+    "poll": "tsx --max-old-space-size=8192 src/cli/poll.ts",
     "smoke": "tsx src/cli/smoke.ts",
-    "inspect": "tsx --max-old-space-size=4096 src/cli/inspect.ts",
-    "render-json": "tsx --max-old-space-size=4096 src/cli/render-from-json.ts",
+    "inspect": "tsx --max-old-space-size=8192 src/cli/inspect.ts",
+    "render-json": "tsx --max-old-space-size=8192 src/cli/render-from-json.ts",
     "typecheck": "tsc --noEmit",
     "web:serve": "cd web && python -m http.server 8000",
     "web:setup": "node scripts/setup-web-publish.mjs"
@@ -28,6 +28,7 @@
     "csgo-protobuf": "^4.1.6",
     "dotenv": "^16.4.5",
     "puppeteer-core": "^24.42.0",
+    "stream-json": "^2.1.0",
     "unbzip2-stream": "^1.4.3"
   },
   "devDependencies": {
