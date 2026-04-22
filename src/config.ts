@@ -30,13 +30,13 @@ export function loadConfig(): AppConfig {
 
   const dataDir = process.env['DATA_DIR']?.trim() || path.resolve(process.cwd(), 'data');
   const demosFolderOverride = process.env['DEMOS_FOLDER']?.trim() || undefined;
-  // Off by default to save disk + parse time: -positions inflates the csda
-  // JSON ~3x (a 258 MB demo → 785 MB; an overtime demo → 1.15 GB). Files
-  // above ~400 MB go through load-match.ts's streaming parser, so size is
-  // no longer a load-time blocker — but parse time roughly doubles and peak
-  // RSS climbs to 6-7 GB on long matches. Enable INCLUDE_POSITIONS=true when
-  // the 2D round viewer is needed; leave it off for scoreboard-only runs.
-  const includePositions = process.env['INCLUDE_POSITIONS']?.toLowerCase() === 'true';
+  // ON by default — the 2D round viewer needs per-tick positions and the
+  // user prefers full fidelity over the disk/RAM cost. csda inflates the
+  // JSON ~3x with -positions (a 258 MB demo → 785 MB; overtime → 1.15 GB)
+  // and parse time roughly doubles, but load-match.ts streams files >400 MB
+  // and the heap is already sized for it (8 GB). Set INCLUDE_POSITIONS=false
+  // explicitly for scoreboard-only runs that want to skip the cost.
+  const includePositions = process.env['INCLUDE_POSITIONS']?.toLowerCase() !== 'false';
 
   const steamId64 = process.env['STEAM_ID64']?.trim() || undefined;
   if (steamId64 && !/^\d{17}$/.test(steamId64)) {

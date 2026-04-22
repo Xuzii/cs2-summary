@@ -11,6 +11,5 @@ publish/
 web/dist/
 web/matches/*.json
 !web/matches/index.json
-!web/matches/sample.json
 
 .claude/settings.local.json
