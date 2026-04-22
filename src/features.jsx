@@ -170,12 +170,21 @@ function RoundDetailPage({ match, initialRound = 1, onJumpToTick }) {
                 const inv = INV[roundN]?.[p.name];
                 if (!inv) return null;
                 const onA = pi < 5;
+                const nadeBg = (n) => n === 'flash' ? '#fff' : n === 'smoke' ? '#8fa0b8' : n === 'he' ? 'var(--gold)' : n === 'molotov' ? '#ff7a1e' : n === 'decoy' ? '#b07bff' : 'var(--muted)';
                 return (
-                  <div key={p.name} style={{display:'grid', gridTemplateColumns: '110px 1fr auto', gap: 10, alignItems:'center', padding: '5px 0', fontSize: 12, borderLeft: `2px solid ${onA ? 'var(--t)' : 'var(--ct)'}`, paddingLeft: 10, marginBottom: 3}}>
+                  <div key={p.name} style={{display:'grid', gridTemplateColumns: '110px 1fr auto auto', gap: 10, alignItems:'center', padding: '5px 0', fontSize: 12, borderLeft: `2px solid ${onA ? 'var(--t)' : 'var(--ct)'}`, paddingLeft: 10, marginBottom: 3}}>
                     <span style={{fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.name}</span>
                     <span style={{fontFamily:'JetBrains Mono', fontSize: 11, color:'var(--muted)'}}>
                       {inv.primary ? <span style={{color:'var(--text)', marginRight: 8}}>{inv.primary.toUpperCase()}</span> : <span style={{color:'var(--subtle)', marginRight: 8}}>—</span>}
                       {inv.secondary.toUpperCase()} {inv.armor > 0 ? ` · K${inv.helmet?'H':''}` : ''}
+                    </span>
+                    <span style={{display:'inline-flex', gap: 3, alignItems:'center', minWidth: 40, justifyContent:'flex-end'}}>
+                      {(inv.nades || []).length === 0
+                        ? <span style={{color:'var(--subtle)', fontFamily:'JetBrains Mono', fontSize: 10}}>—</span>
+                        : (inv.nades || []).map((n, i) => (
+                            <span key={i} title={n} style={{width: 8, height: 8, borderRadius: '50%', display:'inline-block', background: nadeBg(n)}}/>
+                          ))
+                      }
                     </span>
                     <span style={{fontFamily:'JetBrains Mono', color:'var(--gold)', fontWeight: 700}}>${(inv.money/1000).toFixed(1)}K</span>
                   </div>
