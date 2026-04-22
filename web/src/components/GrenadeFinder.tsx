@@ -4,12 +4,12 @@ import type { PlaybackGrenade, PlaybackGrenadeTrajectory } from '../types';
 import { Radar } from './Radar';
 
 const TYPES: Array<{ id: string; label: string }> = [
-  { id: 'all', label: 'All' },
   { id: 'smoke', label: 'Smoke' },
   { id: 'flash', label: 'Flash' },
   { id: 'he', label: 'HE' },
   { id: 'molotov', label: 'Molotov' },
 ];
+const ALL_TYPE_IDS = TYPES.map((t) => t.id);
 
 function normType(raw: string): string {
   const s = (raw || '').toLowerCase();
@@ -99,18 +99,41 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
   }, [pb.rounds]);
 
   const allPlayers = Array.from(new Set(allItems.map((g) => g.thrower).filter(Boolean)));
-  const [type, setType] = useState('all');
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => new Set(ALL_TYPE_IDS));
   const [roundN, setRoundN] = useState<number | 'all'>('all');
   const [player, setPlayer] = useState<string>('all');
 
+  const toggleType = (id: string) => {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const roundIndex = roundN === 'all' ? -1 : pb.rounds.findIndex((r) => r.n === roundN);
+  const gotoRound = (delta: number) => {
+    if (pb.rounds.length === 0) return;
+    if (roundN === 'all') {
+      const first = pb.rounds[0];
+      if (first) setRoundN(first.n);
+      return;
+    }
+    const next = roundIndex + delta;
+    if (next < 0 || next >= pb.rounds.length) return;
+    const target = pb.rounds[next];
+    if (target) setRoundN(target.n);
+  };
+
   const filtered = useMemo(() => {
     return allItems.filter((g) => {
-      if (type !== 'all' && g.type !== type) return false;
+      if (!selectedTypes.has(g.type)) return false;
       if (roundN !== 'all' && g.roundN !== roundN) return false;
       if (player !== 'all' && g.thrower !== player) return false;
       return true;
     });
-  }, [allItems, type, roundN, player]);
+  }, [allItems, selectedTypes, roundN, player]);
 
   const topThrowers: Record<string, number> = {};
   for (const g of filtered) topThrowers[g.thrower] = (topThrowers[g.thrower] ?? 0) + 1;
@@ -127,35 +150,73 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 4 }}>
-          {TYPES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setType(t.id)}
-              style={{
-                padding: '6px 12px',
-                background: type === t.id ? typeColor(t.id) : 'var(--panel)',
-                border: '1px solid var(--line)',
-                color: type === t.id ? '#000' : 'var(--text)',
-                fontSize: 11,
-                letterSpacing: '.1em',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+          {TYPES.map((t) => {
+            const on = selectedTypes.has(t.id);
+            return (
+              <button
+                key={t.id}
+                onClick={() => toggleType(t.id)}
+                style={{
+                  padding: '6px 12px',
+                  background: on ? typeColor(t.id) : 'var(--panel)',
+                  border: '1px solid var(--line)',
+                  color: on ? '#000' : 'var(--muted)',
+                  fontSize: 11,
+                  letterSpacing: '.1em',
+                  opacity: on ? 1 : 0.6,
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
-        <select
-          value={roundN}
-          onChange={(e) => setRoundN(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          style={{ background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--text)', padding: '6px 10px' }}
-        >
-          <option value="all">All rounds</option>
-          {pb.rounds.map((r) => (
-            <option key={r.n} value={r.n}>
-              R{r.n}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <button
+            onClick={() => gotoRound(-1)}
+            disabled={roundN === 'all' || roundIndex <= 0}
+            style={{
+              padding: '6px 10px',
+              background: 'var(--panel)',
+              border: '1px solid var(--line)',
+              color: 'var(--text)',
+              fontSize: 12,
+              cursor: roundN === 'all' || roundIndex <= 0 ? 'default' : 'pointer',
+              opacity: roundN === 'all' || roundIndex <= 0 ? 0.4 : 1,
+            }}
+            aria-label="Previous round"
+          >
+            ◀
+          </button>
+          <select
+            value={roundN}
+            onChange={(e) => setRoundN(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            style={{ background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--text)', padding: '6px 10px' }}
+          >
+            <option value="all">All rounds</option>
+            {pb.rounds.map((r) => (
+              <option key={r.n} value={r.n}>
+                R{r.n}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => gotoRound(1)}
+            disabled={roundN === 'all' || roundIndex >= pb.rounds.length - 1}
+            style={{
+              padding: '6px 10px',
+              background: 'var(--panel)',
+              border: '1px solid var(--line)',
+              color: 'var(--text)',
+              fontSize: 12,
+              cursor: roundN === 'all' || roundIndex >= pb.rounds.length - 1 ? 'default' : 'pointer',
+              opacity: roundN === 'all' || roundIndex >= pb.rounds.length - 1 ? 0.4 : 1,
+            }}
+            aria-label="Next round"
+          >
+            ▶
+          </button>
+        </div>
         <select
           value={player}
           onChange={(e) => setPlayer(e.target.value)}
