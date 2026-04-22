@@ -30,6 +30,11 @@ export function loadConfig(): AppConfig {
 
   const dataDir = process.env['DATA_DIR']?.trim() || path.resolve(process.cwd(), 'data');
   const demosFolderOverride = process.env['DEMOS_FOLDER']?.trim() || undefined;
+  // Off by default: -positions blows the csda JSON up ~3x (a 258 MB demo
+  // produced a 785 MB file in testing), which exceeds Node's ~512 MB max
+  // string length and breaks readFile. Enable INCLUDE_POSITIONS=true only
+  // for shorter demos (2v2, cs-style scrim lengths) where the resulting
+  // JSON fits under that cap; needed for the 2D round viewer to animate.
   const includePositions = process.env['INCLUDE_POSITIONS']?.toLowerCase() === 'true';
 
   const steamId64 = process.env['STEAM_ID64']?.trim() || undefined;

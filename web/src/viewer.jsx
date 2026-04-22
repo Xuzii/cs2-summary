@@ -34,14 +34,27 @@ function RoundViewer({ match, initialRound = 1 }) {
     return () => { cancelAnimationFrame(rafId); lastTs.current = 0; };
   }, [playing, speed, round.duration]);
 
-  // sample positions
+  // sample positions — bracket and lerp by point.t so movement animates
+  // smoothly regardless of sample spacing
   const playerStates = useMemV(() => {
     return round.tracks.map(trk => {
-      const idx = Math.min(trk.points.length - 1, Math.max(0, Math.floor((t / round.duration) * trk.points.length)));
-      const pt = trk.points[idx];
-      // dead if any death event before t matches this player
+      const pts = trk.points;
+      let pos;
+      if (!pts || pts.length === 0) pos = { x: 300, y: 300 };
+      else if (pts.length === 1) pos = pts[0];
+      else {
+        let i = 0;
+        while (i < pts.length - 1 && pts[i + 1].t <= t) i++;
+        const a = pts[i];
+        const b = pts[Math.min(i + 1, pts.length - 1)];
+        if (b.t === a.t) pos = a;
+        else {
+          const u = Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t)));
+          pos = { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+        }
+      }
       const died = round.deaths.find(d => d.victim === trk.name && d.t <= t);
-      return { ...trk, pos: died ? died.victimPos : pt, dead: !!died };
+      return { ...trk, pos: died ? died.victimPos : pos, dead: !!died };
     });
   }, [t, round]);
 
