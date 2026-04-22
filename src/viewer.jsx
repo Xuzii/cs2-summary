@@ -11,28 +11,39 @@ function RoundViewer({ match, initialRound = 1 }) {
   const [playing, setPlaying] = useStV(true);
   const [speed, setSpeed] = useStV(1);
   const tr = useRfV();
-  const lastTs = useRfV(0);
+  // Refs so the rAF loop reads the latest values without restarting on toggle.
+  const playingRef = useRfV(playing);
+  const speedRef = useRfV(speed);
+  const durationRef = useRfV(round.duration);
+  playingRef.current = playing;
+  speedRef.current = speed;
+  durationRef.current = round.duration;
 
   useEfV(() => { setT(0); }, [roundN]);
 
+  // Single continuous rAF loop — never restart on play/pause toggle. The old
+  // version re-created the loop on every toggle, which lost ticks and burned
+  // the first frame on dt=0, so the play button looked like it "did nothing".
+  // lastTs is advanced every frame regardless of playing, so resuming after a
+  // long pause yields a sane ~16ms dt instead of a snap-forward.
   useEfV(() => {
     let rafId;
+    let lastTs = 0;
     const tick = (now) => {
-      if (!lastTs.current) lastTs.current = now;
-      const dt = (now - lastTs.current) / 1000;
-      lastTs.current = now;
-      if (playing) {
+      const dt = lastTs ? (now - lastTs) / 1000 : 0;
+      lastTs = now;
+      if (playingRef.current && dt > 0) {
         setT(prev => {
-          const nx = prev + dt * speed;
-          if (nx >= round.duration) { setPlaying(false); return round.duration; }
+          const nx = prev + dt * speedRef.current;
+          if (nx >= durationRef.current) { setPlaying(false); return durationRef.current; }
           return nx;
         });
       }
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(rafId); lastTs.current = 0; };
-  }, [playing, speed, round.duration]);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   // sample positions — bracket and lerp by point.t so movement animates
   // smoothly regardless of sample spacing
