@@ -12,7 +12,8 @@
 
 (function () {
   const params = new URLSearchParams(location.search);
-  const requestedId = params.get('id');
+  // Pipeline posts links as `?m=<id>`; accept `?id=<id>` too for back-compat.
+  const requestedId = params.get('m') || params.get('id');
 
   const loadJson = (path) => fetch(path, { cache: 'no-cache' }).then((r) => {
     if (!r.ok) throw new Error(`Fetch ${path} failed: ${r.status}`);
