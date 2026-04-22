@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ViewModel } from '../lib/adapter';
-import type { PlaybackDeath, PlaybackRound } from '../types';
+import type { PlaybackDeath, PlaybackRound, PlaybackGrenadeTrajectory, PlaybackPoint } from '../types';
 import { Radar } from './Radar';
 
-function sampleTrack(round: PlaybackRound, playerName: string, t: number): { x: number; y: number } | null {
+interface PlayerState {
+  name: string;
+  side: 'CT' | 'T';
+  team: 'A' | 'B';
+  pos: { x: number; y: number };
+  dead: boolean;
+  health: number;
+}
+
+function sampleTrack(round: PlaybackRound, playerName: string, t: number): PlaybackPoint | null {
   const trk = round.tracks.find((x) => x.name === playerName);
   if (!trk || trk.points.length === 0) return null;
   if (trk.points.length === 1) return trk.points[0]!;
@@ -13,7 +22,33 @@ function sampleTrack(round: PlaybackRound, playerName: string, t: number): { x: 
   const b = trk.points[Math.min(i + 1, trk.points.length - 1)]!;
   if (b.t === a.t) return a;
   const u = Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t)));
-  return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+  return {
+    t,
+    x: a.x + (b.x - a.x) * u,
+    y: a.y + (b.y - a.y) * u,
+    // Keep non-interpolated state flags on the earlier frame — they're
+    // step-function values (alive/dead, hasBomb) and interpolating them
+    // would produce fractional nonsense. HP interpolates linearly.
+    health: a.health !== undefined && b.health !== undefined ? a.health + (b.health - a.health) * u : a.health,
+    isAlive: a.isAlive,
+    hasBomb: a.hasBomb,
+  };
+}
+
+/**
+ * Slice of a trajectory's points up through time `t`. Returns null when
+ * the projectile hasn't been thrown yet or has already landed + aged out.
+ */
+function trajectorySliceUpTo(traj: PlaybackGrenadeTrajectory, t: number): PlaybackGrenadeTrajectory['points'] | null {
+  if (t < traj.tStart) return null;
+  if (t > traj.tEnd + 0.25) return null;
+  const out: PlaybackGrenadeTrajectory['points'] = [];
+  for (const p of traj.points) {
+    if (p.t > t) break;
+    out.push(p);
+  }
+  if (out.length === 0) return null;
+  return out;
 }
 
 export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; initialRound?: number }) {
@@ -69,17 +104,39 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
     };
   }, [playing, speed, round.duration]);
 
-  const playerStates = useMemo(() => {
+  const playerStates: PlayerState[] = useMemo(() => {
     return round.tracks.map((trk) => {
       const died = round.deaths.find((d) => d.victim === trk.name && d.t <= t);
+      const sampled = sampleTrack(round, trk.name, t);
       const pos = died
         ? died.victimPos
-        : sampleTrack(round, trk.name, t) ?? (trk.points[0] ? { x: trk.points[0].x, y: trk.points[0].y } : { x: 0, y: 0 });
-      return { ...trk, pos, dead: !!died };
+        : sampled
+          ? { x: sampled.x, y: sampled.y }
+          : trk.points[0]
+            ? { x: trk.points[0].x, y: trk.points[0].y }
+            : { x: 0, y: 0 };
+      // Prefer real per-tick HP from the sample. The track's isAlive flag is
+      // also authoritative when available; the kill-event fallback covers
+      // legacy data with no per-tick frames.
+      const deadFromSample = sampled?.isAlive === false;
+      const dead = !!died || deadFromSample;
+      const health = dead ? 0 : sampled?.health ?? 100;
+      return { name: trk.name, side: trk.side, team: trk.team, pos, dead, health };
     });
   }, [round, t]);
 
-  const activeGrens = round.grenades.filter((g) => t >= g.t - 0.5 && t < g.t + 3.5);
+  const trajectories = round.trajectories ?? [];
+  const effects = round.effects ?? [];
+  const activeEffects = effects.filter((e) => t >= e.tStart && t < e.tEnd);
+  const inFlight = trajectories
+    .map((tr) => ({ traj: tr, slice: trajectorySliceUpTo(tr, t) }))
+    .filter((entry): entry is { traj: PlaybackGrenadeTrajectory; slice: PlaybackGrenadeTrajectory['points'] } => entry.slice !== null);
+  // Legacy fallback: landing-point pulse (drawn from `grenades` array) when
+  // no trajectory exists for that projectile yet.
+  const legacyActive = trajectories.length === 0
+    ? round.grenades.filter((g) => t >= g.t - 0.5 && t < g.t + 3.5)
+    : [];
+
   const recentKills: PlaybackDeath[] = round.deaths.filter((d) => d.t <= t).slice(-5).reverse();
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -126,7 +183,20 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
             <Radar mapName={match.mapName}>
               {(toPct) => (
                 <>
-                  {activeGrens.map((g) => {
+                  {/* Live effect overlays: smoke clouds, molotov fire, flash bursts */}
+                  {activeEffects.map((eff) => {
+                    const p = toPct(eff.at.x, eff.at.y);
+                    return (
+                      <div
+                        key={`eff-${eff.projectileId}`}
+                        className={`nade-gfx ${eff.kind}`}
+                        style={{ position: 'absolute', left: p.left, top: p.top, transform: 'translate(-50%,-50%)' }}
+                      />
+                    );
+                  })}
+
+                  {/* Legacy: landing-pulse when no trajectory data exists */}
+                  {legacyActive.map((g) => {
                     const p = toPct(g.to.x, g.to.y);
                     return (
                       <div
@@ -136,6 +206,42 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
                       />
                     );
                   })}
+
+                  {/* In-flight grenade arcs */}
+                  {inFlight.length > 0 && (
+                    <svg
+                      className="radar-svg"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+                    >
+                      <defs>
+                        <marker id="viewer-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                          <path d="M0,0 L10,5 L0,10 z" fill="var(--gold)" />
+                        </marker>
+                      </defs>
+                      {inFlight.map(({ traj, slice }) => {
+                        if (slice.length < 2) return null;
+                        const pts = slice.map((p) => {
+                          const pc = toPct(p.x, p.y);
+                          return `${pc.left},${pc.top}`;
+                        });
+                        const head = toPct(slice[slice.length - 1]!.x, slice[slice.length - 1]!.y);
+                        return (
+                          <g key={`traj-${traj.id}`} className="traj-line">
+                            <polyline
+                              points={pts.join(' ')}
+                              stroke="var(--gold)"
+                              strokeWidth={2}
+                              fill="none"
+                              markerEnd="url(#viewer-arrow)"
+                            />
+                            <circle cx={head.left} cy={head.top} r={3} fill="var(--gold)" />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+
+                  {/* Player dots */}
                   {playerStates.map((p) => {
                     const pos = toPct(p.pos.x, p.pos.y);
                     return (
@@ -154,6 +260,8 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
                       </div>
                     );
                   })}
+
+                  {/* Recent deaths: persist X marker for 4s */}
                   {round.deaths
                     .filter((d) => d.t <= t && t - d.t < 4)
                     .map((d, i) => {
@@ -166,6 +274,7 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
                         />
                       );
                     })}
+
                   <div className="killfeed">
                     {recentKills.map((d, i) => (
                       <div key={`${d.t}-${i}`} className="kf-row">
@@ -284,7 +393,7 @@ export function Viewer2DPage({ match, initialRound = 1 }: { match: ViewModel; in
                 {grp.map((p) => {
                   const invEntry = match.roundInventory[roundN]?.[p.name];
                   const inv = invEntry ?? { hp: 100, armor: 0, helmet: false, primary: null, secondary: 'usp_s', nades: [], money: 0 };
-                  const hp = p.dead ? 0 : Math.max(0, inv.hp - Math.floor((t / Math.max(0.001, round.duration)) * 30));
+                  const hp = Math.max(0, Math.round(p.health));
                   return (
                     <div key={p.name} className={`pcard ${p.side.toLowerCase()} ${p.dead ? 'dead' : ''}`}>
                       <div className="pn">

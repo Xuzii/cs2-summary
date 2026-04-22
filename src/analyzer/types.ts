@@ -205,6 +205,78 @@ export interface PlayerBlind {
 }
 
 /**
+ * Per-frame sample of a player's world position + state, emitted by csda's
+ * `-positions` flag. The parser records one entry per active player per
+ * `FrameDone` event (i.e. every demo frame, ~64-128 per second depending on
+ * the tick-rate). The decimator in scoreboard/compute/playback.ts thins this
+ * to 8Hz before it hits the browser.
+ *
+ * Field names mirror cs-demo-analyzer's `PlayerPosition` Go struct,
+ * camelCase-ified (`playerPositions` JSON tag on Match).
+ */
+export interface PlayerPositionFrame {
+  tick?: number;
+  frame?: number;
+  roundNumber?: number;
+  steamId: string;
+  name?: string;
+  side?: TeamSide;
+  x: number;
+  y: number;
+  z?: number;
+  yaw?: number;
+  isAlive?: boolean;
+  health?: number;
+  armor?: number;
+  hasHelmet?: boolean;
+  activeWeaponName?: string;
+  hasBomb?: boolean;
+  hasDefuseKit?: boolean;
+  flashDurationRemaining?: number;
+  money?: number;
+  isDucking?: boolean;
+  isScoping?: boolean;
+  isDefusing?: boolean;
+  isPlanting?: boolean;
+}
+
+/**
+ * Per-frame grenade projectile position. csda emits one entry per in-flight
+ * projectile per frame (so a smoke lives for ~1-2 seconds = ~100-200 frames).
+ * Grouped by `projectileId` downstream to reconstruct the flight arc.
+ */
+export interface GrenadePositionFrame {
+  tick?: number;
+  frame?: number;
+  roundNumber?: number;
+  /** 64-bit projectile id — preserved as string via precisionSafeRewrite. */
+  projectileId: string;
+  grenadeId?: string;
+  grenadeName?: string;
+  throwerSteamId?: string;
+  throwerName?: string;
+  throwerSide?: TeamSide;
+  x: number;
+  y: number;
+  z?: number;
+}
+
+/**
+ * Per-frame inferno (molotov/incendiary) particle positions. csda emits one
+ * entry per fire particle per frame. We only need the {round, tStart, tEnd,
+ * centroid} summary downstream for the 2D replay overlay.
+ */
+export interface InfernoPositionFrame {
+  tick?: number;
+  frame?: number;
+  roundNumber?: number;
+  projectileId: string;
+  x: number;
+  y: number;
+  z?: number;
+}
+
+/**
  * The core typed match object.
  *
  * Note: we intentionally do NOT retain the full parsed JSON here. An earlier
@@ -246,6 +318,15 @@ export interface Match {
   damages?: Damage[];
   bombsPlanted?: BombEvent[];
   bombsDefused?: BombEvent[];
+
+  /**
+   * Per-frame entity position arrays. Only present when csda was run with
+   * `-positions` (INCLUDE_POSITIONS=true). Loaded as-is; the scoreboard
+   * compute layer (playback.ts) decimates to 8Hz before the web JSON export.
+   */
+  playerPositions?: PlayerPositionFrame[];
+  grenadePositions?: GrenadePositionFrame[];
+  infernoPositions?: InfernoPositionFrame[];
 }
 
 export const TEAM_SIDE_T: TeamSide = 2;

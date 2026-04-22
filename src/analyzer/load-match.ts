@@ -5,9 +5,12 @@ import type {
   Clutch,
   Damage,
   Grenade,
+  GrenadePositionFrame,
+  InfernoPositionFrame,
   Match,
   MatchPlayer,
   PlayerBlind,
+  PlayerPositionFrame,
   Position,
   Round,
   Shot,
@@ -146,6 +149,9 @@ export function normalizeMatch(raw: unknown): Match {
   const damages = pickArray(root, ['damages', 'playerHurt', 'player_hurt']).map(readDamage);
   const bombsPlanted = pickArray(root, ['bombsPlanted', 'bombs_planted', 'bombPlants']).map(readBombEvent);
   const bombsDefused = pickArray(root, ['bombsDefused', 'bombs_defused', 'bombDefuses']).map(readBombEvent);
+  const playerPositions = pickArray(root, ['playerPositions', 'player_positions']).map(readPlayerPositionFrame);
+  const grenadePositions = pickArray(root, ['grenadePositions', 'grenade_positions']).map(readGrenadePositionFrame);
+  const infernoPositions = pickArray(root, ['infernoPositions', 'inferno_positions']).map(readInfernoPositionFrame);
 
   const mapName = readString(root, ['mapName', 'map_name', 'map']) ?? 'unknown';
   const durationNs = readNumber(root, ['duration']);
@@ -188,6 +194,69 @@ export function normalizeMatch(raw: unknown): Match {
     damages: damages.length ? damages : undefined,
     bombsPlanted: bombsPlanted.length ? bombsPlanted : undefined,
     bombsDefused: bombsDefused.length ? bombsDefused : undefined,
+    playerPositions: playerPositions.length ? playerPositions : undefined,
+    grenadePositions: grenadePositions.length ? grenadePositions : undefined,
+    infernoPositions: infernoPositions.length ? infernoPositions : undefined,
+  };
+}
+
+function readPlayerPositionFrame(value: unknown): PlayerPositionFrame {
+  if (!isObject(value)) return { steamId: '', x: 0, y: 0 };
+  return {
+    tick: readNumber(value, ['tick']),
+    frame: readNumber(value, ['frame']),
+    roundNumber: readNumber(value, ['roundNumber', 'round_number']),
+    steamId: readSteamId(value, ['steamId', 'steamId64', 'steam_id', 'steam_id_64']),
+    name: readString(value, ['name', 'playerName', 'player_name']),
+    side: readNumber(value, ['side', 'teamSide', 'team_side']) as TeamSide | undefined,
+    x: readNumber(value, ['x', 'X']) ?? 0,
+    y: readNumber(value, ['y', 'Y']) ?? 0,
+    z: readNumber(value, ['z', 'Z']),
+    yaw: readNumber(value, ['yaw', 'Yaw']),
+    isAlive: readBoolean(value, ['isAlive', 'is_alive']),
+    health: readNumber(value, ['health']),
+    armor: readNumber(value, ['armor']),
+    hasHelmet: readBoolean(value, ['hasHelmet', 'has_helmet']),
+    activeWeaponName: readString(value, ['activeWeaponName', 'active_weapon_name']),
+    hasBomb: readBoolean(value, ['hasBomb', 'has_bomb']),
+    hasDefuseKit: readBoolean(value, ['hasDefuseKit', 'has_defuse_kit']),
+    flashDurationRemaining: readNumber(value, ['flashDurationRemaining', 'flash_duration_remaining']),
+    money: readNumber(value, ['money']),
+    isDucking: readBoolean(value, ['isDucking', 'is_ducking']),
+    isScoping: readBoolean(value, ['isScoping', 'is_scoping']),
+    isDefusing: readBoolean(value, ['isDefusing', 'is_defusing']),
+    isPlanting: readBoolean(value, ['isPlanting', 'is_planting']),
+  };
+}
+
+function readGrenadePositionFrame(value: unknown): GrenadePositionFrame {
+  if (!isObject(value)) return { projectileId: '', x: 0, y: 0 };
+  return {
+    tick: readNumber(value, ['tick']),
+    frame: readNumber(value, ['frame']),
+    roundNumber: readNumber(value, ['roundNumber', 'round_number']),
+    projectileId: readSteamId(value, ['projectileId', 'projectile_id']),
+    grenadeId: readString(value, ['grenadeId', 'grenade_id']),
+    grenadeName: readString(value, ['grenadeName', 'grenade_name', 'type', 'weaponName']),
+    throwerSteamId: readSteamIdOptional(value, ['throwerSteamId', 'thrower_steam_id', 'throwerSteamID64']),
+    throwerName: readString(value, ['throwerName', 'thrower_name']),
+    throwerSide: readNumber(value, ['throwerSide', 'thrower_side']) as TeamSide | undefined,
+    x: readNumber(value, ['x', 'X']) ?? 0,
+    y: readNumber(value, ['y', 'Y']) ?? 0,
+    z: readNumber(value, ['z', 'Z']),
+  };
+}
+
+function readInfernoPositionFrame(value: unknown): InfernoPositionFrame {
+  if (!isObject(value)) return { projectileId: '', x: 0, y: 0 };
+  return {
+    tick: readNumber(value, ['tick']),
+    frame: readNumber(value, ['frame']),
+    roundNumber: readNumber(value, ['roundNumber', 'round_number']),
+    projectileId: readSteamId(value, ['projectileId', 'projectile_id']),
+    x: readNumber(value, ['x', 'X']) ?? 0,
+    y: readNumber(value, ['y', 'Y']) ?? 0,
+    z: readNumber(value, ['z', 'Z']),
   };
 }
 

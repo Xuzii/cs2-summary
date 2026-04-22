@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { ViewModel } from '../lib/adapter';
-import type { PlaybackGrenade } from '../types';
+import type { PlaybackGrenade, PlaybackGrenadeTrajectory } from '../types';
 import { Radar } from './Radar';
 
 const TYPES: Array<{ id: string; label: string }> = [
@@ -35,6 +35,42 @@ function typeColor(t: string): string {
   }
 }
 
+/**
+ * Unified row — either a real sampled trajectory (preferred when
+ * `INCLUDE_POSITIONS=true`) or a landing-only fallback for legacy data.
+ */
+interface FinderItem {
+  roundN: number;
+  thrower: string;
+  type: string;
+  points: Array<{ x: number; y: number }>;
+  landing: { x: number; y: number };
+}
+
+function trajToItem(roundN: number, tr: PlaybackGrenadeTrajectory): FinderItem {
+  return {
+    roundN,
+    thrower: tr.thrower,
+    type: normType(tr.type),
+    points: tr.points.map((p) => ({ x: p.x, y: p.y })),
+    landing: tr.points[tr.points.length - 1]
+      ? { x: tr.points[tr.points.length - 1]!.x, y: tr.points[tr.points.length - 1]!.y }
+      : { x: 0, y: 0 },
+  };
+}
+
+function grenToItem(roundN: number, g: PlaybackGrenade): FinderItem {
+  return {
+    roundN,
+    thrower: g.thrower,
+    type: normType(g.type),
+    // Straight line from thrower pos to landing — same as the pre-trajectory
+    // visualization.
+    points: [{ x: g.from.x, y: g.from.y }, { x: g.to.x, y: g.to.y }],
+    landing: { x: g.to.x, y: g.to.y },
+  };
+}
+
 export function GrenadeFinderPage({ match }: { match: ViewModel }) {
   const pb = match.playback;
   if (!pb || pb.rounds.length === 0) {
@@ -48,23 +84,33 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
     );
   }
 
-  const allGren: PlaybackGrenade[] = pb.rounds.flatMap((r) => r.grenades);
-  const allPlayers = Array.from(new Set(allGren.map((g) => g.thrower).filter(Boolean)));
+  // Prefer trajectories (per-tick arcs) per round; fall back to landing-only
+  // grenade list when a round has no trajectory data.
+  const allItems: FinderItem[] = useMemo(() => {
+    const out: FinderItem[] = [];
+    for (const r of pb.rounds) {
+      if (r.trajectories && r.trajectories.length > 0) {
+        for (const tr of r.trajectories) out.push(trajToItem(r.n, tr));
+      } else {
+        for (const g of r.grenades) out.push(grenToItem(r.n, g));
+      }
+    }
+    return out;
+  }, [pb.rounds]);
+
+  const allPlayers = Array.from(new Set(allItems.map((g) => g.thrower).filter(Boolean)));
   const [type, setType] = useState('all');
   const [roundN, setRoundN] = useState<number | 'all'>('all');
   const [player, setPlayer] = useState<string>('all');
 
   const filtered = useMemo(() => {
-    return allGren.filter((g) => {
-      if (type !== 'all' && normType(g.type) !== type) return false;
-      if (roundN !== 'all') {
-        const roundOfG = pb.rounds.find((r) => r.grenades.includes(g));
-        if (!roundOfG || roundOfG.n !== roundN) return false;
-      }
+    return allItems.filter((g) => {
+      if (type !== 'all' && g.type !== type) return false;
+      if (roundN !== 'all' && g.roundN !== roundN) return false;
       if (player !== 'all' && g.thrower !== player) return false;
       return true;
     });
-  }, [allGren, type, roundN, player, pb.rounds]);
+  }, [allItems, type, roundN, player]);
 
   const topThrowers: Record<string, number> = {};
   for (const g of filtered) topThrowers[g.thrower] = (topThrowers[g.thrower] ?? 0) + 1;
@@ -75,7 +121,7 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
       <div className="sect-h">
         <div className="title">Grenade Finder</div>
         <div className="right">
-          {filtered.length} / {allGren.length} grenades
+          {filtered.length} / {allItems.length} grenades
         </div>
       </div>
 
@@ -132,22 +178,24 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
               >
                 {filtered.map((g, i) => {
-                  const f = toPct(g.from.x, g.from.y);
-                  const to = toPct(g.to.x, g.to.y);
-                  const t = normType(g.type);
-                  const color = typeColor(t);
+                  const color = typeColor(g.type);
+                  const landing = toPct(g.landing.x, g.landing.y);
+                  const pts = g.points.map((p) => {
+                    const pc = toPct(p.x, p.y);
+                    return `${pc.left},${pc.top}`;
+                  });
                   return (
                     <g key={i}>
-                      <line
-                        x1={f.left}
-                        y1={f.top}
-                        x2={to.left}
-                        y2={to.top}
-                        stroke={color}
-                        strokeWidth="1.5"
-                        opacity="0.6"
-                      />
-                      <circle cx={to.left} cy={to.top} r="5" fill={color} opacity="0.9" />
+                      {g.points.length >= 2 && (
+                        <polyline
+                          points={pts.join(' ')}
+                          stroke={color}
+                          strokeWidth={1.5}
+                          fill="none"
+                          opacity={0.6}
+                        />
+                      )}
+                      <circle cx={landing.left} cy={landing.top} r={5} fill={color} opacity={0.9} />
                     </g>
                   );
                 })}
@@ -165,7 +213,7 @@ export function GrenadeFinderPage({ match }: { match: ViewModel }) {
                 <span className="k" style={{ color: typeColor(tp) }}>
                   {tp.toUpperCase()}
                 </span>
-                <span className="v">{filtered.filter((g) => normType(g.type) === tp).length}</span>
+                <span className="v">{filtered.filter((g) => g.type === tp).length}</span>
               </div>
             ))}
           </div>

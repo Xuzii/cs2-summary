@@ -307,7 +307,7 @@ export async function renderScoreboardOnlyPng(data: ScoreboardData): Promise<Ren
     damagePerRound: {},
     roundInventory: {},
     openingsSpatial: [],
-    playback: { tickrate: 64, rounds: [] },
+    playback: { tickrate: 64, sampleHz: 8, rounds: [] },
     playbackEmpty: true,
     grenadesAgg: {
       total: 0,

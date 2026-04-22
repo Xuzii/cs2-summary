@@ -6,6 +6,7 @@ export type PageId =
   | 'dash'
   | 'viewer'
   | 'rounds'
+  | 'roundDetail'
   | 'nades'
   | 'charts'
   | 'flash'
@@ -25,6 +26,7 @@ const GROUPS: Array<{
       { id: 'dash', label: 'Overview', ic: 'dash' },
       { id: 'viewer', label: '2D Round Viewer', ic: 'viewer', badge: 'NEW' },
       { id: 'rounds', label: 'Rounds', ic: 'rounds' },
+      { id: 'roundDetail', label: 'Round Detail', ic: 'rounds', badge: 'NEW' },
       { id: 'nades', label: 'Grenade Finder', ic: 'nade', badge: 'NEW' },
     ],
   },

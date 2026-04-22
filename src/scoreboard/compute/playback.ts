@@ -1,23 +1,31 @@
-import type { Match, Grenade } from '../../analyzer/types.ts';
+import type {
+  Grenade,
+  GrenadePositionFrame,
+  InfernoPositionFrame,
+  Match,
+  PlayerPositionFrame,
+} from '../../analyzer/types.ts';
 import { TEAM_SIDE_CT, TEAM_SIDE_T } from '../../analyzer/types.ts';
 
 /**
  * Per-round playback payload for the 2D Round Viewer.
  *
- * Important: true per-tick player position tracks are not exposed by the
- * @akiver/cs-demo-analyzer JSON export we load today (load-match.ts only
- * pulls kill positions + grenade landing positions). This module provides
- * a useful subset:
- *  - `deaths` with killer/victim positions (actual world coords)
- *  - `grenades` with thrower+landing positions
- *  - `flashes` enriched with victim identity
- *  - `tracks` SYNTHESIZED as way-points along each player's known positions
- *    in the round (their kills and deaths). The viewer will interpolate
- *    linearly between way-points. If a player never appears in a kill/death
- *    event for the round, they get a static placeholder at spawn-ish coords.
+ * When the demo was parsed with `-positions` (INCLUDE_POSITIONS=true), csda
+ * emits three per-frame arrays we decimate here:
+ *   - `match.playerPositions`  → 10 entries per frame (one per alive player)
+ *   - `match.grenadePositions` → one entry per in-flight projectile per frame
+ *   - `match.infernoPositions` → one entry per fire particle per frame
  *
- * World coords pass through unchanged; the radar transform is a client-side
- * concern (see web/src/lib/radar.ts).
+ * At 64-tick that's ~640 player-position entries and tens of thousands of
+ * total rows per second of demo. Shipping those straight to the browser is
+ * untenable, so we decimate to **8Hz** (every `tickrate/8` ticks) — enough
+ * for smooth 2D playback, matches cs-demo-manager's viewer cadence, keeps
+ * the per-match JSON safely under GitHub Pages' 100MB/file limit.
+ *
+ * When positions are absent, we fall back to the old behavior: waypoint-only
+ * tracks synthesized from kill/death events (effectively 0-2 points per
+ * player per round) — the viewer still renders, it just teleports between
+ * known positions.
  */
 
 export interface PlaybackPoint {
@@ -25,6 +33,11 @@ export interface PlaybackPoint {
   x: number;
   y: number;
   z?: number;
+  /** Present only when the sample came from true per-tick data. */
+  health?: number;
+  isAlive?: boolean;
+  hasBomb?: boolean;
+  yaw?: number;
 }
 
 export interface PlaybackTrack {
@@ -48,6 +61,11 @@ export interface PlaybackDeath {
   victimPos: { x: number; y: number };
 }
 
+/**
+ * Landing-position summary for a grenade. Kept for back-compat with the
+ * Grenade Finder page which renders from/to lines; the per-tick arc lives
+ * separately in `trajectories` so the Finder can opt in without migrating.
+ */
 export interface PlaybackGrenade {
   id: string;
   t: number;
@@ -56,6 +74,37 @@ export interface PlaybackGrenade {
   type: string;
   from: { x: number; y: number };
   to: { x: number; y: number };
+}
+
+/**
+ * Full flight arc of a single projectile, sampled at 8Hz. `points[0]` is
+ * the throw, `points[points.length-1]` is the landing. `t` is round-relative
+ * seconds matching the viewer's scrubber.
+ */
+export interface PlaybackGrenadeTrajectory {
+  id: string;
+  projectileId: string;
+  type: string;
+  thrower: string;
+  throwerSide: 'CT' | 'T';
+  tStart: number;
+  tEnd: number;
+  points: Array<{ t: number; x: number; y: number; z?: number }>;
+}
+
+/**
+ * Area-of-effect overlay the viewer renders while the effect is live:
+ *   - smoke    → 18s cloud at landing pos
+ *   - molotov  → ~7s fire centroid (avg of inferno particle positions)
+ *   - flash    → 0.15s burst at landing pos (actual blind durations per
+ *                victim are shown in the sidebar separately)
+ */
+export interface PlaybackEffect {
+  kind: 'smoke' | 'molotov' | 'flash';
+  projectileId: string;
+  at: { x: number; y: number };
+  tStart: number;
+  tEnd: number;
 }
 
 export interface PlaybackFlash {
@@ -92,6 +141,8 @@ export interface PlaybackRound {
   tracks: PlaybackTrack[];
   deaths: PlaybackDeath[];
   grenades: PlaybackGrenade[];
+  trajectories: PlaybackGrenadeTrajectory[];
+  effects: PlaybackEffect[];
   flashes: PlaybackFlash[];
   events: PlaybackEvent[];
   eqA: number;
@@ -103,10 +154,16 @@ export interface PlaybackRound {
 
 export interface PlaybackData {
   tickrate: number;
+  /** Effective sample rate of per-tick tracks/trajectories, in Hz. */
+  sampleHz: number;
   rounds: PlaybackRound[];
 }
 
 const TICK_DEFAULT = 64;
+const TARGET_HZ = 8;
+const SMOKE_LIFETIME_SEC = 18;
+const MOLOTOV_LIFETIME_SEC = 7;
+const FLASH_BURST_SEC = 0.15;
 
 function sideOf(s: number | undefined): 'CT' | 'T' {
   return s === TEAM_SIDE_CT ? 'CT' : s === TEAM_SIDE_T ? 'T' : 'T';
@@ -130,11 +187,23 @@ function prettyEndReason(raw: string | undefined): string {
   return 'Eliminated';
 }
 
+function normalizeGrenadeType(raw: string | undefined): string {
+  if (!raw) return 'unknown';
+  const s = raw.toLowerCase();
+  if (s.includes('smoke')) return 'smoke';
+  if (s.includes('flash')) return 'flash';
+  if (s.includes('he') || s === 'hegrenade') return 'he';
+  if (s.includes('molot') || s.includes('inc') || s === 'incgrenade') return 'molotov';
+  if (s.includes('decoy')) return 'decoy';
+  return s;
+}
+
 export function computePlayback(match: Match): PlaybackData {
   const rounds = match.rounds ?? [];
-  if (rounds.length === 0) return { tickrate: match.tickrate ?? TICK_DEFAULT, rounds: [] };
+  if (rounds.length === 0) return { tickrate: match.tickrate ?? TICK_DEFAULT, sampleHz: TARGET_HZ, rounds: [] };
 
   const tickrate = match.tickrate && match.tickrate > 0 ? match.tickrate : TICK_DEFAULT;
+  const stride = Math.max(1, Math.round(tickrate / TARGET_HZ));
   const bySteam = new Map<string, { name: string; team: 'A' | 'B' }>();
   for (const p of match.players) {
     bySteam.set(p.steamId, {
@@ -148,9 +217,19 @@ export function computePlayback(match: Match): PlaybackData {
   const kills = match.kills ?? [];
   const bombsPlanted = match.bombsPlanted ?? [];
   const bombsDefused = match.bombsDefused ?? [];
+  const playerPositions = match.playerPositions ?? [];
+  const grenadePositions = match.grenadePositions ?? [];
+  const infernoPositions = match.infernoPositions ?? [];
+
+  // Index per-round for O(1) bucketed access. roundNumber on each frame is
+  // authoritative; we fall back to startTick window only if it's missing.
+  const playerFramesByRound = bucketBy(playerPositions, (f) => f.roundNumber);
+  const grenadeFramesByRound = bucketBy(grenadePositions, (f) => f.roundNumber);
+  const infernoFramesByRound = bucketBy(infernoPositions, (f) => f.roundNumber);
 
   return {
     tickrate,
+    sampleHz: TARGET_HZ,
     rounds: rounds.map((r, idx) => {
       const n = r.number || idx + 1;
       const startTick = r.startTick ?? 0;
@@ -159,12 +238,6 @@ export function computePlayback(match: Match): PlaybackData {
         tick !== undefined && startTick ? Math.max(0, (tick - startTick) / tickrate) : 0;
 
       const rKills = kills.filter((k) => k.roundNumber === n).slice().sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
-
-      // Determine sides per round
-      const roundSide = (rawSide: number | undefined, team: 'A' | 'B'): 'CT' | 'T' => {
-        const teamSide = team === 'A' ? r.teamASide : r.teamBSide;
-        return sideOf(teamSide ?? rawSide);
-      };
 
       const deaths: PlaybackDeath[] = rKills.map((k, ki) => ({
         t: relT(k.tick),
@@ -186,7 +259,7 @@ export function computePlayback(match: Match): PlaybackData {
         t: relT(g.tick),
         thrower: g.throwerName ?? 'unknown',
         throwerSide: sideOf(g.throwerSide),
-        type: g.type ?? 'unknown',
+        type: normalizeGrenadeType(g.type),
         from: { x: g.position?.x ?? 0, y: g.position?.y ?? 0 },
         to: { x: g.position?.x ?? 0, y: g.position?.y ?? 0 },
       }));
@@ -208,26 +281,40 @@ export function computePlayback(match: Match): PlaybackData {
         };
       });
 
-      // Build synthesized tracks from kill events (waypoints with time)
-      const tracks: PlaybackTrack[] = match.players.map((p) => {
-        const team: 'A' | 'B' = p.teamName === match.teamA.name ? 'A' : 'B';
-        const side = roundSide(undefined, team);
-        const points: PlaybackPoint[] = [];
+      // Determine side per team for THIS round (teams swap at halftime).
+      const aSide = sideOf(r.teamASide);
+      const bSide = sideOf(r.teamBSide);
 
-        // Starting position: try to find player's earliest appearance
-        for (const k of rKills) {
-          if (k.killerName === p.name && k.killerPosition) {
-            points.push({ t: relT(k.tick), x: k.killerPosition.x, y: k.killerPosition.y });
-          }
-          if (k.victimName === p.name && k.victimPosition) {
-            points.push({ t: relT(k.tick), x: k.victimPosition.x, y: k.victimPosition.y });
-          }
-        }
+      // Tracks: decimated per-tick when position frames are available, else
+      // fall back to waypoint synthesis from kills/deaths.
+      const tracks: PlaybackTrack[] = buildTracks({
+        match,
+        startTick,
+        tickrate,
+        stride,
+        playerFrames: playerFramesByRound.get(n) ?? [],
+        rKills,
+        relT,
+        aSide,
+        bSide,
+      });
 
-        // Dedupe sort
-        points.sort((a, b) => a.t - b.t);
+      // Trajectories: one entry per projectileId, sampled at 8Hz.
+      const trajectories = buildTrajectories({
+        roundNumber: n,
+        startTick,
+        tickrate,
+        stride,
+        frames: grenadeFramesByRound.get(n) ?? [],
+      });
 
-        return { name: p.name, side, team, points };
+      // Effects: smoke / molotov / flash overlays the viewer can render by time.
+      const effects = buildEffects({
+        startTick,
+        tickrate,
+        trajectories,
+        playbackGren,
+        infernoFrames: infernoFramesByRound.get(n) ?? [],
       });
 
       const plant = bombsPlanted.find((b) => b.roundNumber === n);
@@ -235,7 +322,6 @@ export function computePlayback(match: Match): PlaybackData {
       const bombPlantT = plant ? relT(plant.tick) : null;
       const bombDefuseT = defuse ? relT(defuse.tick) : null;
 
-      // Timeline events
       const events: PlaybackEvent[] = [
         { t: 0, kind: 'freeze-start', label: 'FREEZETIME' },
         { t: 7, kind: 'round-start', label: 'ROUND START' },
@@ -277,6 +363,8 @@ export function computePlayback(match: Match): PlaybackData {
         tracks,
         deaths,
         grenades: playbackGren,
+        trajectories,
+        effects,
         flashes,
         events,
         eqA: r.teamAEquipmentValue ?? 0,
@@ -287,4 +375,243 @@ export function computePlayback(match: Match): PlaybackData {
       };
     }),
   };
+}
+
+function bucketBy<T>(list: T[], keyFn: (t: T) => number | undefined): Map<number, T[]> {
+  const map = new Map<number, T[]>();
+  for (const item of list) {
+    const k = keyFn(item);
+    if (k === undefined) continue;
+    const arr = map.get(k);
+    if (arr) arr.push(item);
+    else map.set(k, [item]);
+  }
+  return map;
+}
+
+interface BuildTracksOpts {
+  match: Match;
+  startTick: number;
+  tickrate: number;
+  stride: number;
+  playerFrames: PlayerPositionFrame[];
+  rKills: NonNullable<Match['kills']>;
+  relT: (tick: number | undefined) => number;
+  aSide: 'CT' | 'T';
+  bSide: 'CT' | 'T';
+}
+
+function buildTracks(opts: BuildTracksOpts): PlaybackTrack[] {
+  const { match, startTick, tickrate, stride, playerFrames, rKills, relT, aSide, bSide } = opts;
+
+  const teamOf = (p: Match['players'][number]): 'A' | 'B' =>
+    p.teamName === match.teamA.name ? 'A' : 'B';
+  const sideFor = (team: 'A' | 'B'): 'CT' | 'T' => (team === 'A' ? aSide : bSide);
+
+  if (playerFrames.length > 0) {
+    // Per-tick data is authoritative. Bucket by steam id, decimate by stride.
+    const bySteam = new Map<string, PlayerPositionFrame[]>();
+    for (const f of playerFrames) {
+      if (!f.steamId || f.tick === undefined) continue;
+      const arr = bySteam.get(f.steamId);
+      if (arr) arr.push(f);
+      else bySteam.set(f.steamId, [f]);
+    }
+    for (const arr of bySteam.values()) arr.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
+
+    return match.players.map((p) => {
+      const team = teamOf(p);
+      const frames = bySteam.get(p.steamId) ?? [];
+      // Prefer side from the first frame of this round (authoritative at
+      // that tick); fall back to the Round's side mapping so the track
+      // renders in the right color even if the player never spawned.
+      const firstFrameSide = frames[0] ? sideOf(frames[0].side) : undefined;
+      const side: 'CT' | 'T' = firstFrameSide ?? sideFor(team);
+
+      const points: PlaybackPoint[] = [];
+      for (const f of frames) {
+        const tick = f.tick ?? 0;
+        if ((tick - startTick) % stride !== 0) continue;
+        points.push({
+          t: Math.max(0, (tick - startTick) / tickrate),
+          x: f.x,
+          y: f.y,
+          z: f.z,
+          health: f.health,
+          isAlive: f.isAlive,
+          hasBomb: f.hasBomb,
+          yaw: f.yaw,
+        });
+      }
+      return { name: p.name, side, team, points };
+    });
+  }
+
+  // Fallback: synthesize waypoints from this player's kills/deaths.
+  return match.players.map((p) => {
+    const team = teamOf(p);
+    const points: PlaybackPoint[] = [];
+    for (const k of rKills) {
+      if (k.killerName === p.name && k.killerPosition) {
+        points.push({ t: relT(k.tick), x: k.killerPosition.x, y: k.killerPosition.y });
+      }
+      if (k.victimName === p.name && k.victimPosition) {
+        points.push({ t: relT(k.tick), x: k.victimPosition.x, y: k.victimPosition.y });
+      }
+    }
+    points.sort((a, b) => a.t - b.t);
+    return { name: p.name, side: sideFor(team), team, points };
+  });
+}
+
+interface BuildTrajectoriesOpts {
+  roundNumber: number;
+  startTick: number;
+  tickrate: number;
+  stride: number;
+  frames: GrenadePositionFrame[];
+}
+
+function buildTrajectories(opts: BuildTrajectoriesOpts): PlaybackGrenadeTrajectory[] {
+  const { roundNumber, startTick, tickrate, stride, frames } = opts;
+  if (frames.length === 0) return [];
+
+  const byProj = new Map<string, GrenadePositionFrame[]>();
+  for (const f of frames) {
+    if (!f.projectileId) continue;
+    const arr = byProj.get(f.projectileId);
+    if (arr) arr.push(f);
+    else byProj.set(f.projectileId, [f]);
+  }
+
+  const out: PlaybackGrenadeTrajectory[] = [];
+  let idx = 0;
+  for (const [projectileId, arr] of byProj) {
+    arr.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
+    const points: PlaybackGrenadeTrajectory['points'] = [];
+    for (let i = 0; i < arr.length; i++) {
+      const f = arr[i]!;
+      const tick = f.tick ?? 0;
+      // Always include first + last point; decimate the middle.
+      const isEndpoint = i === 0 || i === arr.length - 1;
+      if (!isEndpoint && (tick - startTick) % stride !== 0) continue;
+      points.push({
+        t: Math.max(0, (tick - startTick) / tickrate),
+        x: f.x,
+        y: f.y,
+        z: f.z,
+      });
+    }
+    if (points.length === 0) continue;
+    const first = arr[0]!;
+    const type = normalizeGrenadeType(first.grenadeName);
+    out.push({
+      id: `r${roundNumber}t${idx++}`,
+      projectileId,
+      type,
+      thrower: first.throwerName ?? 'unknown',
+      throwerSide: sideOf(first.throwerSide),
+      tStart: points[0]!.t,
+      tEnd: points[points.length - 1]!.t,
+      points,
+    });
+  }
+  return out;
+}
+
+interface BuildEffectsOpts {
+  startTick: number;
+  tickrate: number;
+  trajectories: PlaybackGrenadeTrajectory[];
+  playbackGren: PlaybackGrenade[];
+  infernoFrames: InfernoPositionFrame[];
+}
+
+function buildEffects(opts: BuildEffectsOpts): PlaybackEffect[] {
+  const { startTick, tickrate, trajectories, playbackGren, infernoFrames } = opts;
+  const out: PlaybackEffect[] = [];
+
+  // Smokes + flashes pulled from trajectories (each has a clear landing).
+  for (const traj of trajectories) {
+    const landing = traj.points[traj.points.length - 1]!;
+    if (traj.type === 'smoke') {
+      out.push({
+        kind: 'smoke',
+        projectileId: traj.projectileId,
+        at: { x: landing.x, y: landing.y },
+        tStart: traj.tEnd,
+        tEnd: traj.tEnd + SMOKE_LIFETIME_SEC,
+      });
+    } else if (traj.type === 'flash') {
+      out.push({
+        kind: 'flash',
+        projectileId: traj.projectileId,
+        at: { x: landing.x, y: landing.y },
+        tStart: traj.tEnd,
+        tEnd: traj.tEnd + FLASH_BURST_SEC,
+      });
+    }
+  }
+
+  // If we don't have trajectories (older data), synthesize smoke/flash
+  // effects from the landing-only `playbackGren` list so the viewer still
+  // shows something.
+  if (trajectories.length === 0) {
+    for (const g of playbackGren) {
+      if (g.type === 'smoke') {
+        out.push({
+          kind: 'smoke',
+          projectileId: g.id,
+          at: g.to,
+          tStart: g.t,
+          tEnd: g.t + SMOKE_LIFETIME_SEC,
+        });
+      } else if (g.type === 'flash') {
+        out.push({
+          kind: 'flash',
+          projectileId: g.id,
+          at: g.to,
+          tStart: g.t,
+          tEnd: g.t + FLASH_BURST_SEC,
+        });
+      }
+    }
+  }
+
+  // Molotovs: group inferno frames by projectileId and compute centroid +
+  // [tStart, tEnd]. csda emits one row per fire particle per frame; the
+  // centroid smooths out the per-particle jitter into a single overlay pos.
+  if (infernoFrames.length > 0) {
+    const byProj = new Map<string, InfernoPositionFrame[]>();
+    for (const f of infernoFrames) {
+      if (!f.projectileId) continue;
+      const arr = byProj.get(f.projectileId);
+      if (arr) arr.push(f);
+      else byProj.set(f.projectileId, [f]);
+    }
+    for (const [projectileId, arr] of byProj) {
+      let sumX = 0;
+      let sumY = 0;
+      let minTick = Infinity;
+      let maxTick = -Infinity;
+      for (const f of arr) {
+        sumX += f.x;
+        sumY += f.y;
+        const t = f.tick ?? 0;
+        if (t < minTick) minTick = t;
+        if (t > maxTick) maxTick = t;
+      }
+      const tStart = Math.max(0, (minTick - startTick) / tickrate);
+      const tEnd = Math.max(tStart, (maxTick - startTick) / tickrate);
+      out.push({
+        kind: 'molotov',
+        projectileId,
+        at: { x: sumX / arr.length, y: sumY / arr.length },
+        tStart,
+        tEnd: Math.max(tEnd, tStart + MOLOTOV_LIFETIME_SEC * 0.5),
+      });
+    }
+  }
+
+  return out.sort((a, b) => a.tStart - b.tStart);
 }

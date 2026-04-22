@@ -5,6 +5,7 @@ import { Shell, type PageId } from './components/Shell';
 import { OverviewPage } from './components/Overview';
 import { PlayerCardPage } from './components/Players';
 import { RoundsPage, DetailPage } from './components/Rounds';
+import { RoundDetailPage } from './components/RoundDetail';
 import { Viewer2DPage } from './components/Viewer2D';
 import { GrenadeFinderPage } from './components/GrenadeFinder';
 import { FlashMatrixPage } from './components/FlashMatrix';
@@ -31,7 +32,7 @@ function parseQuery(): { matchId: string | null; playerSteamId: string | null } 
 
 function parseHashPage(): PageId {
   const h = (window.location.hash || '').replace(/^#/, '');
-  const valid: PageId[] = ['dash', 'viewer', 'rounds', 'nades', 'charts', 'flash', 'duel', 'accuracy', 'player', 'detail', 'history'];
+  const valid: PageId[] = ['dash', 'viewer', 'rounds', 'roundDetail', 'nades', 'charts', 'flash', 'duel', 'accuracy', 'player', 'detail', 'history'];
   return (valid as string[]).includes(h) ? (h as PageId) : 'dash';
 }
 
@@ -39,7 +40,7 @@ function matchJsonUrl(id: string): string {
   return `${import.meta.env.BASE_URL}matches/${encodeURIComponent(id)}.json`;
 }
 
-const PAGES: PageId[] = ['dash', 'viewer', 'rounds', 'nades', 'charts', 'flash', 'duel', 'accuracy', 'player', 'detail', 'history'];
+const PAGES: PageId[] = ['dash', 'viewer', 'rounds', 'roundDetail', 'nades', 'charts', 'flash', 'duel', 'accuracy', 'player', 'detail', 'history'];
 
 export default function App() {
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
@@ -163,6 +164,18 @@ export default function App() {
       break;
     case 'rounds':
       content = <RoundsPage match={match} />;
+      break;
+    case 'roundDetail':
+      content = (
+        <RoundDetailPage
+          match={match}
+          initialRound={activeRound}
+          onJumpToTick={(n) => {
+            setActiveRound(n);
+            setPage('viewer');
+          }}
+        />
+      );
       break;
     case 'nades':
       content = <GrenadeFinderPage match={match} />;

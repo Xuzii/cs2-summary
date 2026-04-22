@@ -138,6 +138,11 @@ export interface PlaybackPoint {
   x: number;
   y: number;
   z?: number;
+  /** Only populated when the backend had per-tick position data. */
+  health?: number;
+  isAlive?: boolean;
+  hasBomb?: boolean;
+  yaw?: number;
 }
 
 export interface PlaybackTrack {
@@ -145,6 +150,25 @@ export interface PlaybackTrack {
   side: Side;
   team: 'A' | 'B';
   points: PlaybackPoint[];
+}
+
+export interface PlaybackGrenadeTrajectory {
+  id: string;
+  projectileId: string;
+  type: string;
+  thrower: string;
+  throwerSide: Side;
+  tStart: number;
+  tEnd: number;
+  points: Array<{ t: number; x: number; y: number; z?: number }>;
+}
+
+export interface PlaybackEffect {
+  kind: 'smoke' | 'molotov' | 'flash';
+  projectileId: string;
+  at: { x: number; y: number };
+  tStart: number;
+  tEnd: number;
 }
 
 export interface PlaybackDeath {
@@ -205,6 +229,10 @@ export interface PlaybackRound {
   tracks: PlaybackTrack[];
   deaths: PlaybackDeath[];
   grenades: PlaybackGrenade[];
+  /** Per-tick (8Hz) flight arcs, one per projectile. Absent on legacy data. */
+  trajectories?: PlaybackGrenadeTrajectory[];
+  /** Timed overlay effects (smoke cloud, molotov fire, flash burst). */
+  effects?: PlaybackEffect[];
   flashes: PlaybackFlash[];
   events: PlaybackEvent[];
   eqA: number;
@@ -216,6 +244,8 @@ export interface PlaybackRound {
 
 export interface PlaybackData {
   tickrate: number;
+  /** Effective sample rate of tracks/trajectories, in Hz. Defaults to 8. */
+  sampleHz?: number;
   rounds: PlaybackRound[];
 }
 
