@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CS2 Match Summary</title>
+<style>
+  @font-face {
+    font-family: 'Anton';
+    src: url('__FONT_ANTON__') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('__FONT_MONO_REG__') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('__FONT_MONO_BOLD__') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  html,body{margin:0;padding:0;background:#05070a;}
+  body{display:flex;flex-direction:column;align-items:center;gap:24px;padding:0;}
+  .card{
+    --bg:#080b10; --panel:#0d1219; --panel-2:#0b0f15; --line:#1a2330;
+    --text:#f2f6fb; --muted:#8a97a8; --subtle:#55647a;
+    --ct:#4aa3ff; --ct-deep:#0a2a4d; --t:#f39321; --t-deep:#4a2600;
+    --win:#3ad28d; --gold:#ffd66b;
+    width:1100px; background:var(--bg); color:var(--text);
+    font-family:'Inter', ui-sans-serif, system-ui, sans-serif;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
+  }
+  .disp{font-family:'Anton', 'Impact', 'Arial Black', sans-serif; font-weight:400; letter-spacing:.02em;}
+  .mono{font-family:'JetBrains Mono', ui-monospace, monospace;}
+
+  /* HERO */
+  .hero{position:relative; min-height:340px; overflow:hidden; background:#060910;}
+  .hero-bg{position:absolute;inset:0;
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+    filter:grayscale(.6) contrast(1.1) brightness(.55);
+    transform:scale(1.08);}
+  .hero-grad{position:absolute;inset:0;
+    background:
+      linear-gradient(180deg, rgba(8,11,16,0) 0%, rgba(8,11,16,.3) 40%, rgba(8,11,16,1) 100%),
+      linear-gradient(90deg, rgba(243,147,33,.32) 0%, transparent 30%, transparent 70%, rgba(74,163,255,.32) 100%),
+      linear-gradient(90deg, rgba(8,11,16,.85) 0%, rgba(8,11,16,.35) 25%, rgba(8,11,16,.35) 75%, rgba(8,11,16,.85) 100%);}
+  .hero-grid{position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size:44px 44px; mix-blend-mode:overlay; opacity:.5;}
+  .hero-cont{position:relative; z-index:2; padding:26px 32px 28px; display:grid;
+    grid-template-rows: auto auto auto; gap:28px;}
+  .hero-top{display:flex; justify-content:space-between; align-items:center;}
+  .hero-brand{display:flex; align-items:center; gap:12px;}
+  .hero-brand .chip{padding:5px 10px; background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.12); border-radius:3px;
+    font-size:10px; font-weight:800; letter-spacing:.3em;}
+  .hero-map{font-family:'Anton', 'Impact', sans-serif; font-weight:400; letter-spacing:.3em;
+    text-transform:uppercase; font-size:13px; color:var(--gold);}
+  .hero-date{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums;
+    letter-spacing:.14em; text-transform:uppercase;}
+
+  .hero-center{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:20px;}
+  .hero-team{display:flex; flex-direction:column; gap:6px;}
+  .hero-team.a{text-align:right; align-items:flex-end;}
+  .hero-team.b{text-align:left;  align-items:flex-start;}
+  .hero-side-tag{font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:16px; letter-spacing:.4em; padding:4px 12px; border-radius:2px;
+    border:1px solid currentColor;}
+  .hero-team.a .hero-side-tag.t{color:var(--t); background:rgba(243,147,33,.12);}
+  .hero-team.a .hero-side-tag.ct{color:var(--ct); background:rgba(74,163,255,.12);}
+  .hero-team.b .hero-side-tag.t{color:var(--t); background:rgba(243,147,33,.12);}
+  .hero-team.b .hero-side-tag.ct{color:var(--ct); background:rgba(74,163,255,.12);}
+  .hero-team-name{font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:42px; line-height:.95; letter-spacing:.01em; text-transform:uppercase; white-space:nowrap;}
+  .hero-team-sub{font-size:11px; color:var(--muted); letter-spacing:.2em; text-transform:uppercase;}
+
+  .hero-score{display:flex; align-items:center; gap:16px;}
+  .hero-snum{font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:128px; line-height:.85; letter-spacing:-.03em;}
+  .hero-snum.win{color:var(--text); text-shadow:0 0 60px rgba(58,210,141,.25);}
+  .hero-snum.lose{color:#4b5b71;}
+  .hero-dash{font-size:52px; color:#324256; font-weight:400; margin:0 -6px;}
+
+  .hero-foot{display:flex; justify-content:space-between; align-items:center;}
+  .hero-winner{
+    padding:8px 18px; border-radius:3px;
+    background:linear-gradient(90deg, rgba(58,210,141,.18), rgba(58,210,141,.03));
+    border-left:3px solid var(--win);
+    font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:18px;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--win);
+  }
+  .hero-half{display:flex; gap:22px; font-size:12px; color:var(--muted);
+    letter-spacing:.14em; text-transform:uppercase; font-weight:600;}
+  .hero-half b{color:var(--text); font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:700; letter-spacing:0;}
+
+  /* SECTION FRAME */
+  .sect-hdr{display:flex; align-items:center; gap:14px;
+    padding:14px 28px; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(255,255,255,.02), transparent);}
+  .sect-hdr .tick{width:4px; height:22px; background:var(--gold);}
+  .sect-hdr h3{margin:0; font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:18px; letter-spacing:.28em; text-transform:uppercase;}
+  .sect-hdr .sub{margin-left:auto; font-size:11px; color:var(--subtle);
+    letter-spacing:.2em; text-transform:uppercase; font-weight:600;}
+  .pad{padding:18px 28px 24px;}
+
+  /* Scoreboard */
+  .team{position:relative;}
+  .team-strip{padding:14px 28px; display:flex; align-items:center; gap:14px;
+    justify-content:space-between;}
+  .team.t .team-strip{background:linear-gradient(90deg, rgba(243,147,33,.18), rgba(243,147,33,0) 60%);
+    border-top:1px solid rgba(243,147,33,.25); border-bottom:1px solid var(--line);}
+  .team.ct .team-strip{background:linear-gradient(90deg, rgba(74,163,255,.18), rgba(74,163,255,0) 60%);
+    border-top:1px solid rgba(74,163,255,.25); border-bottom:1px solid var(--line);}
+  .team-left{display:flex; align-items:center; gap:16px;}
+  .team-side-box{width:54px; height:54px; display:flex; align-items:center; justify-content:center;
+    font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:24px; letter-spacing:.08em;
+    border:2px solid currentColor; border-radius:3px;}
+  .team.t .team-side-box{color:var(--t);}
+  .team.ct .team-side-box{color:var(--ct);}
+  .team-name-big{font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:38px; line-height:1; letter-spacing:-.005em; text-transform:uppercase;}
+  .team-name-sub{font-size:11px; color:var(--muted); letter-spacing:.22em;
+    text-transform:uppercase; font-weight:700; margin-top:4px;}
+  .team-score-big{font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:62px; line-height:1; letter-spacing:-.03em;}
+  .team.winner .team-score-big{color:var(--win);}
+
+  .cols{display:grid; grid-template-columns:1fr 52px 52px 52px 72px 68px 72px 56px 52px 94px;}
+  .colhead{grid-column:1/-1; display:grid; grid-template-columns:inherit;
+    background:#0a0e14; border-bottom:1px solid var(--line);}
+  .colhead > div{padding:10px 12px; font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); text-align:right;}
+  .colhead > div:first-child{text-align:left; padding-left:28px;}
+  .row{grid-column:1/-1; display:grid; grid-template-columns:inherit;
+    align-items:center; border-bottom:1px solid rgba(255,255,255,.03);}
+  .row > div{padding:12px; text-align:right; font-size:15px; font-variant-numeric:tabular-nums;}
+  .row > div:first-child{text-align:left; padding-left:28px; font-weight:600;
+    display:flex; align-items:center; gap:10px;}
+  .row .pname{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:380px;}
+  .row:nth-child(even){background:rgba(255,255,255,.015);}
+  .row.mvp{background:linear-gradient(90deg, rgba(255,214,107,.14), rgba(255,214,107,.02) 60%, transparent) !important;
+    box-shadow: inset 3px 0 0 var(--gold);}
+  .row.mvp .pname{color:#fff2c6;}
+  .crown{filter:drop-shadow(0 0 8px rgba(255,214,107,.6));}
+  .mvp-tag{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:11px;
+    letter-spacing:.22em; padding:2px 7px; border-radius:2px;
+    background:rgba(255,214,107,.18); color:var(--gold);}
+  .pill{display:inline-block; padding:4px 10px; border-radius:3px;
+    font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:700; font-size:13.5px;
+    background:#131c29; color:var(--text);}
+  .pill.good{background:rgba(58,210,141,.18); color:#86e6b6;}
+  .pill.bad{background:rgba(239,107,107,.14); color:#f39696;}
+
+  /* Highlights */
+  .hl-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  .hl{background:var(--panel); border:1px solid var(--line); position:relative;
+    padding:14px; overflow:hidden;}
+  .hl::after{content:''; position:absolute; right:-20px; top:-20px; width:90px; height:90px;
+    background:var(--accent, var(--gold)); filter:blur(40px); opacity:.22;}
+  .hl-label{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:13px;
+    letter-spacing:.28em; text-transform:uppercase; color:var(--accent, var(--gold));}
+  .hl-player{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:22px;
+    line-height:1.05; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .hl-detail{font-size:11.5px; color:var(--muted); margin-top:4px; font-variant-numeric:tabular-nums;}
+
+  /* Round flow */
+  .rf-top{display:grid; grid-template-columns:1fr auto 1fr; gap:18px; align-items:center; margin-bottom:12px;}
+  .rf-team{display:flex; align-items:center; gap:10px;}
+  .rf-team.a{justify-content:flex-start;}
+  .rf-team.b{justify-content:flex-end;}
+  .rf-dot{width:10px; height:10px; border-radius:2px;}
+  .rf-dot.t{background:var(--t); box-shadow:0 0 8px var(--t);}
+  .rf-dot.ct{background:var(--ct); box-shadow:0 0 8px var(--ct);}
+  .rf-team-name{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:16px;
+    letter-spacing:.14em; text-transform:uppercase;}
+  .rf-sep{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:20px; color:var(--muted);
+    letter-spacing:.12em;}
+  .rf-bar{position:relative;}
+  .rf-track{display:grid; gap:2px; height:34px;
+    background:rgba(255,255,255,.025); padding:3px; border-radius:2px;}
+  .rf-cell{border-radius:1px; position:relative;}
+  .rf-cell.ct{background:linear-gradient(180deg, #68b3ff, #3a8dd8); box-shadow:0 0 8px -2px var(--ct);}
+  .rf-cell.t{background:linear-gradient(180deg, #ffa740, #d97900); box-shadow:0 0 8px -2px var(--t);}
+  .rf-cell::after{content:attr(data-n); position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:10px; color:rgba(0,0,0,.55);}
+  .rf-half{position:absolute; top:-6px; bottom:-6px; width:2px;
+    background:repeating-linear-gradient(180deg, var(--gold) 0 4px, transparent 4px 8px);}
+  .rf-labels{display:flex; justify-content:space-between; margin-top:8px;
+    font-size:10.5px; color:var(--subtle); letter-spacing:.14em; text-transform:uppercase; font-weight:600;}
+
+  /* Dual minis */
+  .dual{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .mini{background:var(--panel); border:1px solid var(--line); overflow:hidden;}
+  .mini-hdr{padding:10px 14px; font-family:'Anton', 'Impact', sans-serif; font-weight:400;
+    font-size:14px; letter-spacing:.26em; text-transform:uppercase;
+    border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;}
+  .mini.t  .mini-hdr{color:var(--t);  background:linear-gradient(90deg, rgba(243,147,33,.14), transparent);}
+  .mini.ct .mini-hdr{color:var(--ct); background:linear-gradient(90deg, rgba(74,163,255,.14), transparent);}
+  .mini-hdr .sside{font-size:10px; letter-spacing:.2em; color:var(--muted);}
+  .mini table{width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums;}
+  .mini th,.mini td{padding:7px 10px; text-align:right; border-bottom:1px solid rgba(255,255,255,.03);}
+  .mini th{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:11px;
+    letter-spacing:.18em; color:var(--subtle); text-transform:uppercase;
+    background:rgba(255,255,255,.02);}
+  .mini th:first-child,.mini td:first-child{text-align:left; max-width:200px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .mini tr:last-child td{border-bottom:0;}
+  .mini.util th,.mini.util td{padding:6px 7px; font-size:12px;}
+  .mini.util th:first-child,.mini.util td:first-child{padding-left:12px; max-width:130px;}
+  .mini.util th:last-child,.mini.util td:last-child{padding-right:12px;}
+
+  /* Economy */
+  .econ{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .econ-card{background:var(--panel); border:1px solid var(--line); padding:16px 18px;
+    position:relative; overflow:hidden;}
+  .econ-card.t{border-left:3px solid var(--t); --glow:var(--t);}
+  .econ-card.ct{border-left:3px solid var(--ct); --glow:var(--ct);}
+  .econ-card::after{content:''; position:absolute; right:-40px; top:-40px;
+    width:120px; height:120px; background:var(--glow); filter:blur(50px); opacity:.25;}
+  .econ-head{display:flex; align-items:center; gap:10px;}
+  .econ-team{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:22px; letter-spacing:.02em; text-transform:uppercase;}
+  .econ-side{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:12px;
+    letter-spacing:.3em; padding:3px 9px; border:1px solid currentColor; border-radius:2px;}
+  .econ-card.t .econ-side{color:var(--t);}
+  .econ-card.ct .econ-side{color:var(--ct);}
+  .econ-half{font-size:11.5px; color:var(--muted); margin-top:4px;
+    letter-spacing:.12em; text-transform:uppercase;}
+  .econ-nums{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:14px;}
+  .econ-val{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:36px; line-height:1; letter-spacing:-.02em;}
+  .econ-lab{font-size:10px; color:var(--subtle); letter-spacing:.18em;
+    text-transform:uppercase; font-weight:700; margin-top:4px;}
+
+  /* Matrix */
+  .mx-wrap{padding:8px 28px 24px;}
+  .mx{display:grid; gap:2px; margin:0 auto; width:max-content;}
+  .mx-col{height:34px; display:flex; align-items:flex-end; justify-content:center;
+    padding:0 2px 6px; border-bottom:2px solid transparent;}
+  .mx-col span{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:11px;
+    letter-spacing:.06em; white-space:nowrap; text-transform:uppercase; line-height:1;}
+  .mx-col.t{border-bottom-color:rgba(243,147,33,.55);}
+  .mx-col.ct{border-bottom-color:rgba(74,163,255,.55);}
+  .mx-col.t span{color:var(--t);} .mx-col.ct span{color:var(--ct);}
+  .mx-row{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:13px;
+    letter-spacing:.06em; text-transform:uppercase; padding:0 12px;
+    display:flex; align-items:center; justify-content:flex-end;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mx-row.t{color:var(--t);} .mx-row.ct{color:var(--ct);}
+  .mx-cell{background:#131c29; display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:700; font-size:13px; border-radius:2px;}
+  .mx-cell.diag{background:transparent;}
+  .mx-cell.zero{color:var(--subtle); opacity:.5;}
+
+  /* Heatmap */
+  .hm-wrap{position:relative; width:600px; height:600px; margin:0 auto;
+    background:#05070a; border:1px solid var(--line); border-radius:2px; overflow:hidden;}
+  .hm-img{display:block; width:100%; height:100%; filter:brightness(.7) contrast(1.05);}
+  .hm-dot{position:absolute; width:8px; height:8px; border-radius:50%;
+    transform:translate(-50%,-50%); opacity:.72; pointer-events:none;
+    box-shadow:0 0 6px -1px currentColor;}
+  .hm-dot.ct{background:var(--ct); color:var(--ct);}
+  .hm-dot.t{background:var(--t); color:var(--t);}
+  .hm-legend{position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px;
+    font-family:'Anton','Impact',sans-serif; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    background:rgba(5,7,10,.55); padding:6px 10px; border-radius:2px;
+    border:1px solid rgba(255,255,255,.08);}
+  .hm-legend .lg{display:flex; align-items:center; gap:6px;}
+  .hm-legend .lg i{width:8px; height:8px; border-radius:50%; display:inline-block;}
+  .hm-legend .lg.ct i{background:var(--ct);} .hm-legend .lg.ct{color:var(--ct);}
+  .hm-legend .lg.t  i{background:var(--t);}  .hm-legend .lg.t{color:var(--t);}
+
+  /* New stat panels */
+  .mini.cm th, .mini.cm td{padding:6px 6px; font-size:12px;}
+  .mini.cm th:first-child, .mini.cm td:first-child{padding-left:12px; max-width:120px;}
+  .mini.cm td.zero{color:var(--subtle); opacity:.45;}
+  .mini.cm td.ace{color:#ff6b6b; font-weight:700;}
+  .mini.cm td.clutch-w{color:#86e6b6;}
+
+  .mini.et th, .mini.et td{padding:6px 7px; font-size:12px;}
+  .mini.et th:first-child, .mini.et td:first-child{padding-left:12px; max-width:140px;}
+
+  /* Records */
+  .rec-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:14px;}
+  .rec-card{background:var(--panel); border:1px solid var(--line); padding:14px 16px;}
+  .rec-h{font-family:'Anton','Impact',sans-serif; font-size:12px; letter-spacing:.28em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
+  .wp-row{display:grid; grid-template-columns:90px 1fr 40px; align-items:center; gap:8px; margin-bottom:6px;
+    font-size:12px;}
+  .wp-row:last-child{margin-bottom:0;}
+  .wp-name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .wp-bar{height:10px; background:#131c29; position:relative; border-radius:1px;}
+  .wp-fill{position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, var(--gold), #c9972a); border-radius:1px;}
+  .wp-n{text-align:right; font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700; font-size:12px;}
+  .rec-line{display:flex; justify-content:space-between; align-items:baseline; padding:5px 0;
+    font-size:12px; border-bottom:1px dashed rgba(255,255,255,.05);}
+  .rec-line:last-child{border-bottom:0;}
+  .rec-k{color:var(--subtle); letter-spacing:.14em; text-transform:uppercase; font-size:10.5px; font-weight:700;}
+  .rec-v{font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700;}
+  .rec-v b{color:var(--gold); font-family:inherit;}
+
+  /* Aim */
+  .mini.aim th, .mini.aim td{padding:6px 6px; font-size:12px;}
+  .mini.aim th:first-child, .mini.aim td:first-child{padding-left:12px; max-width:130px;}
+  .aim-foot{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    padding:10px 14px; background:rgba(255,255,255,.02); border-top:1px solid var(--line);
+    font-size:11.5px;}
+  .aim-foot .af-k{color:var(--muted); letter-spacing:.14em; text-transform:uppercase; font-size:9.5px; font-weight:700;}
+  .aim-foot .af-v{margin-top:2px; font-family:'Anton','Impact',sans-serif; font-size:15px;
+    letter-spacing:.02em; text-transform:uppercase;}
+  .aim-foot .af-v b{color:var(--gold); font-family:inherit;}
+
+  /* Bomb strip */
+  .bomb-strip{display:grid; grid-template-columns:repeat(5, 1fr); gap:0;
+    background:var(--panel); border:1px solid var(--line);}
+  .bs-cell{padding:14px 16px; text-align:center; border-right:1px solid var(--line);}
+  .bs-cell:last-child{border-right:0;}
+  .bs-k{font-size:10px; color:var(--subtle); letter-spacing:.22em; text-transform:uppercase; font-weight:700;}
+  .bs-v{font-family:'Anton','Impact',sans-serif; font-size:26px; margin-top:4px; letter-spacing:.02em;}
+  .bs-sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
+
+  /* Player card */
+  .pc-hero{position:relative; padding:22px 28px; background:#060910;
+    border-bottom:1px solid var(--line); overflow:hidden; min-height:108px;
+    display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center;}
+  .pc-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;
+    filter:grayscale(.7) brightness(.35) contrast(1.1); z-index:0;}
+  .pc-hero-grad{position:absolute;inset:0;z-index:1;
+    background:linear-gradient(90deg, rgba(8,11,16,.9), rgba(8,11,16,.55) 55%, rgba(8,11,16,.9));}
+  .pc-hero-l{position:relative; z-index:2; display:flex; flex-direction:column; gap:6px; min-width:0;}
+  .pc-hero-r{position:relative; z-index:2; text-align:right;}
+  .pc-hero-name{font-family:'Anton','Impact',sans-serif; font-weight:400; font-size:44px;
+    line-height:1; letter-spacing:.005em; text-transform:uppercase;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pc-hero-sub{font-size:12px; color:var(--muted); letter-spacing:.22em;
+    text-transform:uppercase; font-weight:700;}
+  .pc-hero-sub .pc-side{padding:2px 8px; border:1px solid currentColor; border-radius:2px; margin-right:8px;}
+  .pc-hero-sub .pc-side.ct{color:var(--ct);} .pc-hero-sub .pc-side.t{color:var(--t);}
+  .pc-result{display:inline-block; padding:6px 18px; border-radius:3px;
+    font-family:'Anton','Impact',sans-serif; font-size:22px; letter-spacing:.28em;}
+  .pc-result.won{background:linear-gradient(90deg, rgba(58,210,141,.18), rgba(58,210,141,.05));
+    border-left:3px solid var(--win); color:var(--win);}
+  .pc-result.lost{background:linear-gradient(90deg, rgba(239,107,107,.18), rgba(239,107,107,.05));
+    border-left:3px solid #ef6b6b; color:#f39696;}
+  .pc-result.draw{background:rgba(255,255,255,.06); border-left:3px solid var(--muted); color:var(--muted);}
+  .pc-hero-score{font-family:'Anton','Impact',sans-serif; font-size:26px; letter-spacing:-.02em; margin-top:6px;}
+  .pc-hero-meta{font-size:11px; color:var(--muted); letter-spacing:.18em;
+    text-transform:uppercase; font-weight:600; margin-top:4px;}
+  .pc-head{display:grid; grid-template-columns:repeat(6,1fr); gap:0;
+    background:var(--panel); border-bottom:1px solid var(--line);}
+  .pc-h{padding:16px 14px; text-align:center; border-right:1px solid var(--line);}
+  .pc-h:last-child{border-right:0;}
+  .pc-h-k{font-size:10px; color:var(--subtle); letter-spacing:.24em;
+    text-transform:uppercase; font-weight:700;}
+  .pc-h-v{font-family:'Anton','Impact',sans-serif; font-size:30px; line-height:1;
+    letter-spacing:.01em; margin-top:8px;}
+  .pc-h-v.gold{color:var(--gold);}
+  .pc-three{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; padding:18px 28px;
+    border-bottom:1px solid var(--line);}
+  .pc-three .col{background:var(--panel); border:1px solid var(--line); padding:14px 16px;}
+  .pc-three .col-h{font-family:'Anton','Impact',sans-serif; font-size:12px;
+    letter-spacing:.28em; text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
+  .pc-line{display:flex; justify-content:space-between; align-items:baseline; padding:4px 0;
+    font-size:13px; border-bottom:1px dashed rgba(255,255,255,.05);}
+  .pc-line:last-child{border-bottom:0;}
+  .pc-line .k{color:var(--subtle); letter-spacing:.14em; text-transform:uppercase;
+    font-size:10.5px; font-weight:700;}
+  .pc-line .v{font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700;
+    font-variant-numeric:tabular-nums;}
+  .pc-line .v.zero{color:var(--subtle); opacity:.45;}
+  .pc-line .v.win{color:#86e6b6;}
+  /* Round bars */
+  .pc-rounds{padding:10px 28px 18px; border-bottom:1px solid var(--line);}
+  .pc-rlegend{display:flex; gap:18px; font-size:10.5px; color:var(--muted);
+    letter-spacing:.16em; text-transform:uppercase; margin-bottom:8px; font-weight:700;
+    flex-wrap:wrap;}
+  .pc-rlegend i{display:inline-block; width:10px; height:10px; margin-right:4px;
+    vertical-align:middle;}
+  .pc-rlegend .won-sw{background:var(--win);}
+  .pc-rlegend .lost-sw{background:#ef6b6b;}
+  .pc-rtrack{position:relative; display:grid; gap:2px; background:rgba(255,255,255,.025);
+    padding:4px; border-radius:2px;}
+  .pc-rbar{position:relative; height:20px; background:#0b0f15;}
+  .pc-rbar .fill{position:absolute; left:0; top:0; bottom:0;}
+  .pc-rbar.won .fill{background:linear-gradient(90deg, rgba(58,210,141,.75), rgba(58,210,141,.35));}
+  .pc-rbar.lost .fill{background:linear-gradient(90deg, rgba(239,107,107,.75), rgba(239,107,107,.3));}
+  .pc-rbar .label{position:absolute; left:4px; top:50%; transform:translateY(-50%);
+    font-family:'JetBrains Mono',ui-monospace,monospace; font-size:9.5px; font-weight:700;
+    color:rgba(255,255,255,.6); z-index:2; letter-spacing:.02em;}
+  .pc-rbar .val{position:absolute; right:4px; top:50%; transform:translateY(-50%);
+    font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px; font-weight:700;
+    color:#f2f6fb; z-index:2;}
+  .pc-rbar .markers{position:absolute; right:30px; top:50%; transform:translateY(-50%);
+    display:flex; gap:3px; z-index:2;}
+  .pc-rbar .m{font-size:10px; line-height:1;}
+  .pc-rbar .m.kill{color:var(--gold);}
+  .pc-rbar .m.fk{color:var(--ct);}
+  .pc-rbar .m.clutch{color:#c27bff;}
+  .pc-rbar .m.multi{color:#ff6b6b;}
+  .pc-rhalf{position:absolute; left:0; right:0; bottom:-6px; height:2px;
+    background:repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 8px);}
+  /* Two-col sections */
+  .pc-two{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:18px 28px;
+    border-bottom:1px solid var(--line);}
+  .pc-two .col{background:var(--panel); border:1px solid var(--line); padding:14px 16px;}
+  .pc-weapons .wp-row{display:grid; grid-template-columns:110px 1fr 38px 40px;
+    align-items:center; gap:8px; margin-bottom:6px; font-size:12px;}
+  .pc-weapons .wp-row:last-child{margin-bottom:0;}
+  .pc-weapons .wp-name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pc-weapons .wp-bar{height:10px; background:#131c29; position:relative; border-radius:1px;}
+  .pc-weapons .wp-fill{position:absolute; left:0; top:0; bottom:0;
+    background:linear-gradient(90deg, var(--gold), #c9972a); border-radius:1px;}
+  .pc-weapons .wp-n{text-align:right; font-family:'JetBrains Mono',ui-monospace,monospace;
+    font-weight:700; font-size:12px;}
+  .pc-weapons .wp-hs{text-align:right; color:var(--muted); font-size:11px;
+    font-family:'JetBrains Mono',ui-monospace,monospace;}
+  /* Duel row */
+  .pc-duels{padding:14px 28px; display:flex; flex-wrap:wrap; gap:10px;
+    border-bottom:1px solid var(--line);}
+  .pc-duel{background:var(--panel); border:1px solid var(--line); padding:8px 12px;
+    min-width:160px; flex:1;}
+  .pc-duel .d-name{font-size:11px; color:var(--muted); letter-spacing:.16em;
+    text-transform:uppercase; font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pc-duel .d-score{font-family:'Anton','Impact',sans-serif; font-size:18px;
+    margin-top:2px; letter-spacing:.02em;}
+  .pc-duel .d-score .dw{color:#86e6b6;}
+  .pc-duel .d-score .dl{color:#f39696;}
+  .pc-duel .d-score.even .dw,.pc-duel .d-score.even .dl{color:var(--text);}
+  /* Death analysis */
+  .pc-deaths{padding:14px 28px; border-bottom:1px solid var(--line);
+    display:grid; grid-template-columns:2fr 3fr; gap:16px; align-items:center;}
+  .pc-neme{background:var(--panel); border:1px solid var(--line); padding:12px 16px;
+    border-left:3px solid #ef6b6b;}
+  .pc-neme-k{font-size:10px; color:var(--subtle); letter-spacing:.24em;
+    text-transform:uppercase; font-weight:700;}
+  .pc-neme-v{font-family:'Anton','Impact',sans-serif; font-size:22px; margin-top:4px;
+    letter-spacing:.02em;}
+  .pc-neme-sub{font-size:11px; color:var(--muted); margin-top:2px;
+    font-family:'JetBrains Mono',ui-monospace,monospace;}
+  .pc-dstats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .pc-dstat{background:var(--panel); border:1px solid var(--line); padding:10px 12px;
+    text-align:center;}
+  .pc-dstat .k{font-size:10px; color:var(--subtle); letter-spacing:.22em;
+    text-transform:uppercase; font-weight:700;}
+  .pc-dstat .v{font-family:'Anton','Impact',sans-serif; font-size:22px; margin-top:4px;
+    letter-spacing:.02em;}
+
+  .footer{padding:14px 28px; display:flex; justify-content:space-between; align-items:center;
+    background:#060910; border-top:1px solid var(--line); font-size:11px; color:var(--subtle);
+    letter-spacing:.18em; text-transform:uppercase; font-weight:600;}
+  .footer-meta{display:flex; gap:18px; align-items:center; flex-wrap:wrap;}
+  .footer-meta .fm-k{color:var(--subtle); margin-right:6px;}
+  .footer-meta .fm-v{color:var(--muted); font-family:'JetBrains Mono',ui-monospace,monospace; letter-spacing:0;}
+  .brand{font-family:'Anton', 'Impact', sans-serif; font-weight:400; font-size:14px; letter-spacing:.3em; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="card" id="card-primary"></div>
+<div class="card" id="card-deep"></div>
+<div class="card" id="card-player" style="display:none"></div>
+<script>
+(() => {
+  const esc = s => String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const sideC = s => s === 'CT' ? 'ct' : 't';
+
+  function renderPlayer(P) {
+    const heroBg = P.heroMapImage
+      ? `<div class="pc-hero-bg" style="background-image:url('${P.heroMapImage}')"></div>`
+      : '<div class="pc-hero-bg"></div>';
+    const resultCls = P.match.result === 'WON' ? 'won' : P.match.result === 'LOST' ? 'lost' : 'draw';
+    const sideCls = P.player.finalSide === 'CT' ? 'ct' : P.player.finalSide === 'T' ? 't' : '';
+    const sideTag = P.player.finalSide === 'MIXED'
+      ? ''
+      : `<span class="pc-side ${sideCls}">${P.player.finalSide}</span>`;
+
+    const heroHTML = `
+      <section class="pc-hero">
+        ${heroBg}<div class="pc-hero-grad"></div>
+        <div class="pc-hero-l">
+          <div class="pc-hero-name">${esc(P.player.name)}</div>
+          <div class="pc-hero-sub">${sideTag}${esc(P.player.teamName)} · ${esc(P.match.mapPretty.toUpperCase())}</div>
+        </div>
+        <div class="pc-hero-r">
+          <div class="pc-result ${resultCls}">${P.match.result}</div>
+          <div class="pc-hero-score">${esc(P.match.teamAName)} ${P.match.scoreA} — ${P.match.scoreB} ${esc(P.match.teamBName)}</div>
+          <div class="pc-hero-meta">${esc(P.match.date)} · ${esc(P.match.durationLabel)}</div>
+        </div>
+      </section>`;
+
+    const h = P.headline;
+    const cell = (k, v, cls) => `<div class="pc-h"><div class="pc-h-k">${k}</div><div class="pc-h-v ${cls||''}">${v}</div></div>`;
+    const ratingCls = h.rating >= 1.15 ? 'gold' : '';
+    const headHTML = `
+      <div class="pc-head">
+        ${cell('K / D / A', `${h.kills}/${h.deaths}/${h.assists}`)}
+        ${cell('ADR', h.adr.toFixed(1))}
+        ${cell('RATING', h.rating.toFixed(2), ratingCls)}
+        ${cell('HS %', h.hsPct.toFixed(0) + '%')}
+        ${cell('KAST', h.kast.toFixed(0) + '%')}
+        ${cell('MVPs', h.mvps)}
+      </div>`;
+
+    const vPair = (b) => b.att === 0
+      ? '<span class="v zero">·</span>'
+      : `<span class="v ${b.won > 0 ? 'win' : ''}">${b.won}/${b.att}</span>`;
+    const op = P.openings;
+    const cl = P.clutches;
+    const mk = P.multiKills;
+    const threeHTML = `
+      <div class="pc-three">
+        <div class="col">
+          <div class="col-h">Openings</div>
+          <div class="pc-line"><span class="k">Wins / Losses</span><span class="v">${op.wins} / ${op.losses}</span></div>
+          <div class="pc-line"><span class="k">Win %</span><span class="v">${op.winPct.toFixed(1)}%</span></div>
+          <div class="pc-line"><span class="k">Entry frags</span><span class="v">${op.entryFrags}</span></div>
+          <div class="pc-line"><span class="k">First deaths</span><span class="v">${op.firstDeaths}</span></div>
+        </div>
+        <div class="col">
+          <div class="col-h">Clutches</div>
+          <div class="pc-line"><span class="k">1v1</span>${vPair(cl.v1)}</div>
+          <div class="pc-line"><span class="k">1v2</span>${vPair(cl.v2)}</div>
+          <div class="pc-line"><span class="k">1v3</span>${vPair(cl.v3)}</div>
+          <div class="pc-line"><span class="k">1v4</span>${vPair(cl.v4)}</div>
+          <div class="pc-line"><span class="k">1v5</span>${vPair(cl.v5)}</div>
+        </div>
+        <div class="col">
+          <div class="col-h">Multi-kills</div>
+          <div class="pc-line"><span class="k">1K</span><span class="v ${mk.k1===0?'zero':''}">${mk.k1}</span></div>
+          <div class="pc-line"><span class="k">2K</span><span class="v ${mk.k2===0?'zero':''}">${mk.k2}</span></div>
+          <div class="pc-line"><span class="k">3K</span><span class="v ${mk.k3===0?'zero':''}">${mk.k3}</span></div>
+          <div class="pc-line"><span class="k">4K</span><span class="v ${mk.k4===0?'zero':''}">${mk.k4}</span></div>
+          <div class="pc-line"><span class="k">ACE</span><span class="v ${mk.ace===0?'zero':''}">${mk.ace}</span></div>
+        </div>
+      </div>`;
+
+    // Round bars
+    const rs = P.rounds;
+    const maxDmg = rs.reduce((a, r) => Math.max(a, r.damage), 0) || 1;
+    let halftimeIdx = -1;
+    const bars = rs.map((r, i) => {
+      const cls = r.won ? 'won' : 'lost';
+      const pct = Math.max(2, (r.damage / maxDmg) * 100);
+      const markers = [];
+      if (r.isClutch) markers.push('<span class="m clutch">⚡</span>');
+      if (r.isFirstKill) markers.push('<span class="m fk">◆</span>');
+      if (r.isMultiKill) markers.push('<span class="m multi">★</span>');
+      if (r.hadKill && !r.isMultiKill) markers.push('<span class="m kill">●</span>');
+      // Track halftime: first round where side flips vs the previous round.
+      if (i > 0 && rs[i-1].side && r.side && rs[i-1].side !== r.side && halftimeIdx === -1) {
+        halftimeIdx = i;
+      }
+      return `<div class="pc-rbar ${cls}">
+        <div class="fill" style="width:${pct}%"></div>
+        <div class="label">R${r.n}</div>
+        <div class="markers">${markers.join('')}</div>
+        <div class="val">${r.damage}</div>
+      </div>`;
+    }).join('');
+    // Pick a column count that keeps bars readable; 2 rows if > 16 rounds.
+    const cols = rs.length > 16 ? Math.ceil(rs.length / 2) : rs.length;
+    const trackStyle = `grid-template-columns:repeat(${cols}, 1fr);`;
+    const roundsHTML = `
+      <div class="pc-rounds">
+        <div class="sect-hdr" style="padding:0; border:0; margin-bottom:10px; background:none;">
+          <div class="tick"></div><h3>Round Impact</h3>
+          <span class="sub">damage per round · ${rs.length} rounds</span>
+        </div>
+        <div class="pc-rlegend">
+          <span><i class="won-sw"></i>Round won</span>
+          <span><i class="lost-sw"></i>Round lost</span>
+          <span><span class="m kill">●</span> kill</span>
+          <span><span class="m fk">◆</span> first kill</span>
+          <span><span class="m multi">★</span> 3K+</span>
+          <span><span class="m clutch">⚡</span> clutch won</span>
+        </div>
+        <div class="pc-rtrack" style="${trackStyle}">${bars}</div>
+      </div>`;
+
+    // Weapons + aim
+    const weaponMax = P.weapons.reduce((a, w) => Math.max(a, w.kills), 0) || 1;
+    const weaponsRows = P.weapons.length === 0
+      ? '<div style="color:var(--subtle); font-size:12px;">No weapon kills.</div>'
+      : P.weapons.map(w => `
+          <div class="wp-row">
+            <div class="wp-name">${esc(w.name)}</div>
+            <div class="wp-bar"><div class="wp-fill" style="width:${Math.max(3, (w.kills/weaponMax)*100)}%"></div></div>
+            <div class="wp-n">${w.kills}k</div>
+            <div class="wp-hs">${w.hsPct.toFixed(0)}%HS</div>
+          </div>`).join('');
+    const aimRow = (k, v) => `<div class="pc-line"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+    const twoTopHTML = `
+      <div class="pc-two">
+        <div class="col pc-weapons">
+          <div class="col-h" style="font-family:'Anton','Impact',sans-serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Top weapons</div>
+          ${weaponsRows}
+        </div>
+        <div class="col">
+          <div class="col-h" style="font-family:'Anton','Impact',sans-serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Aim &amp; accuracy</div>
+          ${aimRow('Hit %', P.aim.hitPct.toFixed(1) + '%')}
+          ${aimRow('HS accuracy', P.aim.hsAcc.toFixed(1) + '%')}
+          ${aimRow('Tap %', P.aim.tapAcc.toFixed(1) + '%')}
+          ${aimRow('Spray %', P.aim.sprayAcc.toFixed(1) + '%')}
+          ${aimRow('Moving %', P.aim.movingPct.toFixed(0) + '%')}
+          ${aimRow('Avg kill dist.', P.aim.avgDist ? P.aim.avgDist + 'u' : '—')}
+        </div>
+      </div>`;
+
+    const u = P.utility;
+    const s = P.specials;
+    const twoBotHTML = `
+      <div class="pc-two">
+        <div class="col">
+          <div class="col-h" style="font-family:'Anton','Impact',sans-serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Utility</div>
+          ${aimRow('HE damage', u.heDmg)}
+          ${aimRow('Flash assists', u.flashAssists)}
+          ${aimRow('Enemies flashed', u.enemiesFlashed)}
+          ${aimRow('Blind time', u.blindTime.toFixed(1) + 's')}
+          ${aimRow('Smokes thrown', u.smokes)}
+        </div>
+        <div class="col">
+          <div class="col-h" style="font-family:'Anton','Impact',sans-serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Specials</div>
+          ${aimRow('Wallbangs', s.wallbangs)}
+          ${aimRow('No-scopes', s.noscopes)}
+          ${aimRow('Through smoke', s.throughSmoke)}
+          ${aimRow('Blind kills', s.blindKills)}
+          ${aimRow('Flash kills', s.flashKills)}
+        </div>
+      </div>`;
+
+    const duelsHTML = P.duelsVsEnemies.length === 0
+      ? ''
+      : `<div class="pc-duels">${
+          P.duelsVsEnemies.map(d => {
+            const cls = d.kills > d.deaths ? '' : d.kills < d.deaths ? '' : 'even';
+            return `<div class="pc-duel">
+              <div class="d-name">vs ${esc(d.enemyName)}</div>
+              <div class="d-score ${cls}">
+                <span class="${d.kills >= d.deaths ? 'dw' : 'dl'}">${d.kills}</span>
+                <span style="color:var(--subtle);margin:0 4px;">–</span>
+                <span class="${d.deaths > d.kills ? 'dl' : 'dw'}">${d.deaths}</span>
+              </div>
+            </div>`;
+          }).join('')
+        }</div>`;
+
+    const d = P.deaths;
+    const nemesisInner = d.nemesisName
+      ? `<div class="pc-neme-k">Nemesis</div>
+         <div class="pc-neme-v">${esc(d.nemesisName)}</div>
+         <div class="pc-neme-sub">${d.nemesisDeaths} death${d.nemesisDeaths === 1 ? '' : 's'}${d.nemesisWeapon ? ' · ' + esc(d.nemesisWeapon) : ''}</div>`
+      : `<div class="pc-neme-k">Nemesis</div>
+         <div class="pc-neme-v">—</div>
+         <div class="pc-neme-sub">No deaths tracked</div>`;
+    const deathsHTML = `
+      <div class="pc-deaths">
+        <div class="pc-neme">${nemesisInner}</div>
+        <div class="pc-dstats">
+          <div class="pc-dstat"><div class="k">First deaths</div><div class="v">${d.firstDeaths}</div></div>
+          <div class="pc-dstat"><div class="k">Traded</div><div class="v">${d.tradedDeaths}/${d.totalDeaths}</div></div>
+          <div class="pc-dstat"><div class="k">Blinded-killed</div><div class="v">${d.blindedDeaths}</div></div>
+        </div>
+      </div>`;
+
+    const footerHTML = `
+      <div class="footer">
+        <div class="brand">CS2 · PLAYER CARD</div>
+        <div class="footer-meta">
+          <span>${esc(P.match.date)}</span>
+          <span><span class="fm-k">ID</span><span class="fm-v">${esc(P.player.steamId)}</span></span>
+        </div>
+      </div>`;
+
+    return heroHTML + headHTML + threeHTML + roundsHTML + twoTopHTML + twoBotHTML + duelsHTML + deathsHTML + footerHTML;
+  }
+
+  // Render player card if a PLAYER payload is present (per-player render mode).
+  if (window.PLAYER) {
+    const el = document.getElementById('card-player');
+    el.style.display = '';
+    el.innerHTML = renderPlayer(window.PLAYER);
+    document.getElementById('card-primary').style.display = 'none';
+    document.getElementById('card-deep').style.display = 'none';
+    window.__CARD_READY__ = true;
+    return;
+  }
+
+  const M = window.MATCH;
+  if (!M) { window.__CARD_READY__ = true; return; }
+  // Shorten names for tight columns: strip trailing digits, bracketed clan tags,
+  // .exe / .com suffixes, and non-alphanumeric tail, then uppercase-truncate.
+  const abbrevName = (name, maxLen) => {
+    let s = String(name || '');
+    s = s.replace(/\[[^\]]*\]|\([^)]*\)|\{[^}]*\}/g, '');
+    s = s.replace(/\.(exe|com|net|io|gg|tv)$/i, '');
+    s = s.replace(/[_\-\s]+/g, ' ').trim();
+    const first = s.split(/\s+/)[0] || s;
+    const core = first.replace(/\d+$/, '') || first;
+    const up = core.toUpperCase();
+    return up.length > maxLen ? up.slice(0, maxLen) : up;
+  };
+  const crown = '<svg class="crown" viewBox="0 0 20 16" width="17" height="14"><path d="M2 14 L4 5 L7.5 9 L10 3 L12.5 9 L16 5 L18 14 Z" fill="#ffd66b" stroke="#8a6a18" stroke-width=".6" stroke-linejoin="round"/><rect x="2" y="13" width="16" height="2" fill="#ffd66b" stroke="#8a6a18" stroke-width=".6"/></svg>';
+
+  const ratingPill = v => {
+    const cls = v >= 1.15 ? 'good' : v < 0.90 ? 'bad' : '';
+    return `<span class="pill ${cls}">${v.toFixed(2)}</span>`;
+  };
+
+  const row = (p) => `
+    <div class="row ${p.mvpFlag?'mvp':''}">
+      <div>${p.mvpFlag?crown:''}<span class="pname">${esc(p.name)}</span>${p.mvpFlag?'<span class="mvp-tag">MVP</span>':''}</div>
+      <div>${p.k}</div><div>${p.d}</div><div>${p.a}</div>
+      <div>${p.adr.toFixed(1)}</div><div>${p.hs.toFixed(0)}%</div><div>${p.kast.toFixed(0)}%</div>
+      <div>${p.mvp}</div><div>${p.fk}</div><div>${ratingPill(p.rating)}</div>
+    </div>`;
+
+  const teamSection = (team, isWin) => `
+    <section class="team ${sideC(team.side)} ${isWin?'winner':''}">
+      <div class="team-strip">
+        <div class="team-left">
+          <div class="team-side-box">${team.side}</div>
+          <div>
+            <div class="team-name-big">${esc(team.name)}</div>
+            <div class="team-name-sub">${isWin?'Winner':'Defeat'} · ${team.side === 'CT' ? 'Counter-Terrorist' : 'Terrorist'}</div>
+          </div>
+        </div>
+        <div class="team-score-big">${team.score}</div>
+      </div>
+      <div class="cols">
+        <div class="colhead"><div>Player</div><div>K</div><div>D</div><div>A</div><div>ADR</div><div>HS%</div><div>KAST</div><div>MVP</div><div>FK</div><div>Rating</div></div>
+        ${team.players.map(row).join('')}
+      </div>
+    </section>`;
+
+  const HL = {
+    'MVP':'#ffd66b',
+    'BEST ENTRY':'#4aa3ff',
+    'TOP FRAGGER':'#ff7a7a',
+    'CLUTCH':'#c27bff',
+    'UTILITY':'#3ad28d',
+    '4K':'#f39321',
+    '3K':'#f39321',
+    'ACE':'#ff4d4d',
+  };
+  const hlHTML = (M.highlights.length === 0)
+    ? '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No standout moments recorded.</div>'
+    : M.highlights.slice(0, 5).map(h => `
+    <div class="hl" style="--accent:${HL[h.label]||'#ffd66b'}">
+      <div class="hl-label">${esc(h.label)}</div>
+      <div class="hl-player">${esc(h.player)}</div>
+      <div class="hl-detail">${esc(h.detail)}</div>
+    </div>`).join('');
+
+  // Round flow
+  const nRounds = Math.max(M.roundFlow.length, 1);
+  let halftimeIdx = -1;
+  const cells = M.roundFlow.map((r,i) => {
+    if (r.halftime) halftimeIdx = i;
+    return `<div class="rf-cell ${sideC(r.winner)}" data-n="${r.n}"></div>`;
+  }).join('');
+  const halftimeLeft = halftimeIdx >= 0
+    ? `calc(${(halftimeIdx+1)/nRounds * 100}% - 1px)` : null;
+
+  const openingTable = (rows) => rows.length === 0
+    ? '<div style="color:var(--subtle);font-size:12px;padding:10px 14px;">No data.</div>'
+    : `
+    <table>
+      <thead><tr><th>Player</th><th>Att</th><th>W</th><th>L</th><th>%</th><th>CT (W/A)</th><th>T (W/A)</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.att}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.pct.toFixed(1)}%</td><td>${esc(r.ct)}</td><td>${esc(r.t)}</td></tr>`).join('')}</tbody>
+    </table>`;
+  const utilTable = (rows) => rows.length === 0
+    ? '<div style="color:var(--subtle);font-size:12px;padding:10px 14px;">No data.</div>'
+    : `
+    <table>
+      <thead><tr><th>Player</th><th>HE</th><th>HE/R</th><th>FL</th><th>EF</th><th>BLIND</th><th>SMK</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.heDmg}</td><td>${r.hePerRnd.toFixed(1)}</td><td>${r.flashes}</td><td>${r.enemiesFlashed}</td><td>${r.blindTime.toFixed(1)}</td><td>${r.smokes}</td></tr>`).join('')}</tbody>
+    </table>`;
+
+  const econCard = (team, stats) => `
+    <div class="econ-card ${sideC(team.side)}">
+      <div class="econ-head">
+        <div class="econ-team">${esc(team.name)}</div>
+        <div class="econ-side">${team.side}</div>
+      </div>
+      <div class="econ-half">Half split ${esc(stats.half)}</div>
+      <div class="econ-nums">
+        <div><div class="econ-val">${stats.pistols}</div><div class="econ-lab">Pistols</div></div>
+        <div><div class="econ-val">${stats.ecos}</div><div class="econ-lab">Ecos</div></div>
+        <div><div class="econ-val">${stats.forces}</div><div class="econ-lab">Force/semi</div></div>
+        <div><div class="econ-val">${stats.fullBuys}</div><div class="econ-lab">Full buys</div></div>
+      </div>
+    </div>`;
+
+  // Clutches & Multi-kills
+  const v = (b) => b.att === 0 ? '<span class="zero">·</span>' : `${b.won}/${b.att}`;
+  const cmCell = (b) => b.att === 0
+    ? '<td class="zero">·</td>'
+    : `<td class="${b.won>0?'clutch-w':''}">${b.won}/${b.att}</td>`;
+  const multiCell = (n, cls) => n === 0 ? '<td class="zero">·</td>' : `<td class="${cls||''}">${n}</td>`;
+  const cmTable = (rows) => rows.length === 0
+    ? '<div style="color:var(--subtle);font-size:12px;padding:10px 14px;">No data.</div>'
+    : `
+    <table>
+      <thead><tr><th>Player</th><th>1v1</th><th>1v2</th><th>1v3</th><th>1v4</th><th>1v5</th><th>2K</th><th>3K</th><th>4K</th><th>ACE</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td>${cmCell(r.v1)}${cmCell(r.v2)}${cmCell(r.v3)}${cmCell(r.v4)}${cmCell(r.v5)}${multiCell(r.twoK)}${multiCell(r.threeK)}${multiCell(r.fourK)}${multiCell(r.ace,'ace')}</tr>`).join('')}</tbody>
+    </table>`;
+
+  // Entry & Trade
+  const etTable = (rows) => rows.length === 0
+    ? '<div style="color:var(--subtle);font-size:12px;padding:10px 14px;">No data.</div>'
+    : `
+    <table>
+      <thead><tr><th>Player</th><th>FK</th><th>FD</th><th>TRK</th><th>TRD</th><th>UTIL</th><th>U/R</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.firstKills}</td><td>${r.firstDeaths}</td><td>${r.tradeKills}</td><td>${r.tradeDeaths}</td><td>${r.utilityDamage}</td><td>${r.utilPerRound.toFixed(1)}</td></tr>`).join('')}</tbody>
+    </table>`;
+
+  // Records (weapons + match records + novelty)
+  const recordsHTML = () => {
+    if (!M.records) return '';
+    const rec = M.records;
+    const topMax = rec.topWeapons.length ? rec.topWeapons[0].kills : 1;
+    const weapons = rec.topWeapons.length === 0
+      ? '<div style="color:var(--subtle);font-size:12px;">No weapon data.</div>'
+      : rec.topWeapons.map(w => `
+        <div class="wp-row">
+          <div class="wp-name">${esc(w.weapon)}</div>
+          <div class="wp-bar"><div class="wp-fill" style="width:${Math.max(3, (w.kills/topMax)*100)}%"></div></div>
+          <div class="wp-n">${w.kills}</div>
+        </div>`).join('');
+
+    const recLines = [];
+    if (rec.longestKill) {
+      recLines.push(`<div class="rec-line"><span class="rec-k">Longest kill</span><span class="rec-v"><b>${esc(rec.longestKill.player)}</b> · ${esc(rec.longestKill.weapon||'?')} · ${rec.longestKill.distance}u</span></div>`);
+    }
+    if (rec.bestRound) {
+      recLines.push(`<div class="rec-line"><span class="rec-k">Best round</span><span class="rec-v"><b>${esc(rec.bestRound.player)}</b> · ${rec.bestRound.kills}k in R${rec.bestRound.roundNumber}</span></div>`);
+    }
+    if (rec.fastestRound) {
+      recLines.push(`<div class="rec-line"><span class="rec-k">Fastest round</span><span class="rec-v">R${rec.fastestRound.roundNumber} · ${rec.fastestRound.durationSec.toFixed(1)}s${rec.fastestRound.winnerSide?' · '+rec.fastestRound.winnerSide:''}</span></div>`);
+    }
+    if (rec.slowestRound) {
+      recLines.push(`<div class="rec-line"><span class="rec-k">Slowest round</span><span class="rec-v">R${rec.slowestRound.roundNumber} · ${rec.slowestRound.durationSec.toFixed(1)}s${rec.slowestRound.winnerSide?' · '+rec.slowestRound.winnerSide:''}</span></div>`);
+    }
+    const recordsCol = recLines.length === 0
+      ? '<div style="color:var(--subtle);font-size:12px;">No record data.</div>'
+      : recLines.join('');
+
+    const nv = rec.novelty;
+    const novItems = [
+      ['Wallbangs', nv.wallbangs],
+      ['No-scopes', nv.noScopes],
+      ['Through smoke', nv.throughSmoke],
+      ['Collaterals', nv.collaterals],
+      ['Blind kills', nv.blindKills],
+    ].filter(([, n]) => n > 0);
+    const novCol = novItems.length === 0
+      ? '<div style="color:var(--subtle);font-size:12px;">None this match.</div>'
+      : novItems.map(([k,n]) => `<div class="rec-line"><span class="rec-k">${esc(k)}</span><span class="rec-v">${n}</span></div>`).join('');
+
+    return `
+      <div class="sect-hdr"><div class="tick"></div><h3>Weapons &amp; Records</h3><span class="sub">match highlights</span></div>
+      <div class="pad"><div class="rec-grid">
+        <div class="rec-card"><div class="rec-h">Top weapons</div>${weapons}</div>
+        <div class="rec-card"><div class="rec-h">Records</div>${recordsCol}</div>
+        <div class="rec-card"><div class="rec-h">Novelty</div>${novCol}</div>
+      </div></div>`;
+  };
+
+  // Aim
+  const aimRow = (r) => `<tr>
+    <td>${esc(r.name)}</td>
+    <td>${r.shots}</td>
+    <td>${r.hitPct.toFixed(1)}%</td>
+    <td>${r.hsAcc.toFixed(1)}%</td>
+    <td>${r.tapAcc.toFixed(1)}%</td>
+    <td>${r.sprayAcc.toFixed(1)}%</td>
+    <td>${r.movingPct.toFixed(0)}%</td>
+    <td>${r.avgDist||'—'}</td>
+    <td>${r.flashKills}</td>
+    <td>${r.blindKills}</td>
+  </tr>`;
+  const aimTable = (rows) => rows.length === 0
+    ? '<div style="color:var(--subtle);font-size:12px;padding:10px 14px;">No data.</div>'
+    : `<table>
+      <thead><tr><th>Player</th><th>SHOTS</th><th>HIT%</th><th>HS%</th><th>TAP%</th><th>SPRAY%</th><th>MOV%</th><th>AVG D</th><th>FK</th><th>BK</th></tr></thead>
+      <tbody>${rows.map(aimRow).join('')}</tbody>
+    </table>`;
+
+  const aimFootHTML = () => {
+    if (!M.aim) return '';
+    const a = M.aim;
+    const tap = a.bestTap ? `<b>${esc(a.bestTap.name)}</b> ${a.bestTap.acc.toFixed(1)}%` : '—';
+    const spray = a.bestSpray ? `<b>${esc(a.bestSpray.name)}</b> ${a.bestSpray.acc.toFixed(1)}%` : '—';
+    const top = a.topShooter ? `<b>${esc(a.topShooter.name)}</b> ${a.topShooter.shots}` : '—';
+    return `<div class="aim-foot">
+      <div><div class="af-k">Best tap shooter</div><div class="af-v">${tap}</div></div>
+      <div><div class="af-k">Best spray control</div><div class="af-v">${spray}</div></div>
+      <div><div class="af-k">Most shots fired</div><div class="af-v">${top}</div></div>
+    </div>`;
+  };
+
+  // Bomb strip
+  const bombHTML = () => {
+    if (!M.bombPlays) return '';
+    const b = M.bombPlays;
+    const siteLabel = (b.plantsA + b.plantsB) === 0 ? `${b.plantsTotal}` : `A ${b.plantsA} · B ${b.plantsB}`;
+    return `
+      <div class="sect-hdr"><div class="tick"></div><h3>Bomb Plays</h3><span class="sub">plants &amp; defuses</span></div>
+      <div class="pad"><div class="bomb-strip">
+        <div class="bs-cell"><div class="bs-k">Plants</div><div class="bs-v">${b.plantsTotal}</div><div class="bs-sub">${siteLabel}</div></div>
+        <div class="bs-cell"><div class="bs-k">Defuses</div><div class="bs-v">${b.defuses}</div><div class="bs-sub">&nbsp;</div></div>
+        <div class="bs-cell"><div class="bs-k">Top planter</div><div class="bs-v">${b.topPlanter?esc(b.topPlanter.name):'—'}</div><div class="bs-sub">${b.topPlanter?b.topPlanter.count+' plant'+(b.topPlanter.count===1?'':'s'):'&nbsp;'}</div></div>
+        <div class="bs-cell"><div class="bs-k">Top defuser</div><div class="bs-v">${b.topDefuser?esc(b.topDefuser.name):'—'}</div><div class="bs-sub">${b.topDefuser?b.topDefuser.count+' defuse'+(b.topDefuser.count===1?'':'s'):'&nbsp;'}</div></div>
+        <div class="bs-cell"><div class="bs-k">Site split</div><div class="bs-v">${b.plantsA+b.plantsB===0?'—':Math.round((b.plantsA/(b.plantsA+b.plantsB))*100)+'% A'}</div><div class="bs-sub">${b.plantsA+b.plantsB===0?'&nbsp;':(100-Math.round((b.plantsA/(b.plantsA+b.plantsB))*100))+'% B'}</div></div>
+      </div></div>`;
+  };
+
+  // Duel matrix
+  const mx = M.duelMatrix;
+  const n = mx.players.length;
+  const cell = 42;
+  const mxStyle = `grid-template-columns: 200px repeat(${n}, ${cell}px); grid-auto-rows: ${cell}px;`;
+  const flat = mx.kills.flat();
+  const maxV = flat.length ? Math.max(...flat) : 0;
+  const heat = v => v === 0 ? '' : `background: rgba(58,210,141,${0.2 + 0.6 * (v/Math.max(1,maxV))});`;
+  const sideFor = (p) => p.team === 'A' ? M.teamA.side : M.teamB.side;
+  let mxHTML = '';
+  if (n > 0) {
+    mxHTML = `<div class="mx" style="${mxStyle}"><div></div>`;
+    mx.players.forEach(p => {
+      mxHTML += `<div class="mx-col ${sideC(sideFor(p))}"><span>${esc(abbrevName(p.name, 7))}</span></div>`;
+    });
+    mx.players.forEach((p, i) => {
+      mxHTML += `<div class="mx-row ${sideC(sideFor(p))}">${esc(p.name.length > 22 ? p.name.slice(0,21)+'…' : p.name)}</div>`;
+      for (let j = 0; j < n; j++) {
+        const v = mx.kills[i][j];
+        if (i === j) mxHTML += `<div class="mx-cell diag"></div>`;
+        else if (v === 0) mxHTML += `<div class="mx-cell zero">·</div>`;
+        else mxHTML += `<div class="mx-cell" style="${heat(v)}">${v}</div>`;
+      }
+    });
+    mxHTML += `</div>`;
+  } else {
+    mxHTML = '<div style="color:var(--subtle);font-size:12px;text-align:center;padding:10px;">No kill data.</div>';
+  }
+
+  // Heatmap
+  let heatmapHTML = '';
+  if (M.heatmap) {
+    const h = M.heatmap;
+    const dotsHtml = h.dots.map(d =>
+      `<div class="hm-dot ${sideC(d.side)}" style="left:${d.x}px;top:${d.y}px"></div>`
+    ).join('');
+    heatmapHTML = `
+      <div class="sect-hdr"><div class="tick"></div><h3>Kill Heatmap</h3><span class="sub">${esc(h.prettyMap)} · ${h.totalKills} kills</span></div>
+      <div class="pad">
+        <div class="hm-wrap">
+          <img class="hm-img" src="${h.radarFileUrl}" />
+          ${dotsHtml}
+          <div class="hm-legend">
+            <div class="lg ct"><i></i>CT kills</div>
+            <div class="lg t"><i></i>T kills</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const heroBg = M.heroMapImage
+    ? `<div class="hero-bg" style="background-image:url('${M.heroMapImage}')"></div>`
+    : '<div class="hero-bg"></div>';
+
+  const halfFooter = `
+    <div class="hero-half">
+      <div>1st half <b>${M.teamA.firstHalf.score}–${M.teamB.firstHalf.score}</b></div>
+      <div>2nd half <b>${M.teamA.secondHalf.score}–${M.teamB.secondHalf.score}</b></div>
+      ${M.mvpFooterName ? `<div>MVP <b style="color:#ffd66b">${esc(M.mvpFooterName)}</b></div>` : ''}
+    </div>`;
+
+  // Reusable hero + footer so both cards carry match identity.
+  const heroHTML = (subtitle) => `
+    <section class="hero">
+      ${heroBg}<div class="hero-grad"></div><div class="hero-grid"></div>
+      <div class="hero-cont">
+        <div class="hero-top">
+          <div class="hero-brand">
+            <span class="chip">CS2</span>
+            <span class="hero-map">${esc(subtitle)}</span>
+          </div>
+          <div class="hero-date">${esc(M.date)} · ${esc(M.durationLabel)}</div>
+        </div>
+
+        <div class="hero-center">
+          <div class="hero-team a">
+            <div class="hero-side-tag ${sideC(M.teamA.side)}">${M.teamA.side}</div>
+            <div class="hero-team-name">${esc(M.teamA.name)}</div>
+            <div class="hero-team-sub">${esc(M.halfA.first)} · ${esc(M.halfA.second)}</div>
+          </div>
+          <div class="hero-score">
+            <div class="hero-snum ${M.winner==='A'?'win':'lose'}">${M.teamA.score}</div>
+            <div class="hero-dash">—</div>
+            <div class="hero-snum ${M.winner==='B'?'win':'lose'}">${M.teamB.score}</div>
+          </div>
+          <div class="hero-team b">
+            <div class="hero-side-tag ${sideC(M.teamB.side)}">${M.teamB.side}</div>
+            <div class="hero-team-name">${esc(M.teamB.name)}</div>
+            <div class="hero-team-sub">${esc(M.halfB.first)} · ${esc(M.halfB.second)}</div>
+          </div>
+        </div>
+
+        <div class="hero-foot">
+          <div class="hero-winner">${esc(M.winnerLabel)}</div>
+          ${halfFooter}
+        </div>
+      </div>
+    </section>`;
+
+  const footerHTML = (label) => `
+    <div class="footer">
+      <div class="brand">CS2 · ${esc(label)}</div>
+      <div class="footer-meta">
+        ${M.source ? `<span><span class="fm-k">SRC</span><span class="fm-v">${esc(M.source)}</span></span>` : ''}
+        ${M.serverName ? `<span><span class="fm-k">SRV</span><span class="fm-v">${esc(M.serverName.length > 40 ? M.serverName.slice(0,38)+'…' : M.serverName)}</span></span>` : ''}
+        ${M.shareCode ? `<span><span class="fm-k">CODE</span><span class="fm-v">${esc(M.shareCode.length > 24 ? M.shareCode.slice(0,22)+'…' : M.shareCode)}</span></span>` : ''}
+        <span>${esc(M.date)}</span>
+      </div>
+    </div>`;
+
+  // Primary card: hero + per-team scoreboards + highlights + round flow + H2H + heatmap.
+  document.getElementById('card-primary').innerHTML = `
+    ${heroHTML('Match summary · 1 of 2')}
+
+    ${teamSection(M.teamA, M.winner==='A')}
+    ${teamSection(M.teamB, M.winner==='B')}
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Match Highlights</h3><span class="sub">${M.highlights.length} standout${M.highlights.length===1?'':'s'}</span></div>
+    <div class="pad"><div class="hl-grid">${hlHTML}</div></div>
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Round Flow</h3><span class="sub">${nRounds} rounds · halftime ${M.teamA.firstHalf.score}–${M.teamB.firstHalf.score}</span></div>
+    <div class="pad">
+      <div class="rf-top">
+        <div class="rf-team a"><span class="rf-dot ${sideC(M.teamA.firstHalf.side)}"></span><span class="rf-team-name">${esc(M.teamA.name)}</span></div>
+        <div class="rf-sep">${M.teamA.score} · ${M.teamB.score}</div>
+        <div class="rf-team b"><span class="rf-team-name">${esc(M.teamB.name)}</span><span class="rf-dot ${sideC(M.teamB.firstHalf.side)}"></span></div>
+      </div>
+      <div class="rf-bar">
+        <div class="rf-track" style="grid-template-columns:repeat(${nRounds},1fr);">${cells}</div>
+        ${halftimeLeft ? `<div class="rf-half" style="left:${halftimeLeft}"></div>` : ''}
+      </div>
+      <div class="rf-labels"><div>R1</div>${halftimeIdx>=0?'<div>Halftime</div>':''}<div>R${nRounds}</div></div>
+    </div>
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Head-to-Head Kills</h3><span class="sub">row killed column</span></div>
+    <div class="mx-wrap">${mxHTML}</div>
+
+    ${heatmapHTML}
+
+    ${footerHTML('OVERVIEW · 1/2')}
+  `;
+
+  // Deep card: opening duels, utility, economy, clutches, entries, records, aim, bombs.
+  document.getElementById('card-deep').innerHTML = `
+    ${heroHTML('Detailed stats · 2 of 2')}
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Opening Duels</h3><span class="sub">first blood of each round</span></div>
+    <div class="pad"><div class="dual">
+      <div class="mini ${sideC(M.teamA.side)}"><div class="mini-hdr">${esc(M.teamA.name)}<span class="sside">${M.teamA.side}</span></div>${openingTable(M.openingDuels.teamA)}</div>
+      <div class="mini ${sideC(M.teamB.side)}"><div class="mini-hdr">${esc(M.teamB.name)}<span class="sside">${M.teamB.side}</span></div>${openingTable(M.openingDuels.teamB)}</div>
+    </div></div>
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Utility</h3><span class="sub">grenades &amp; flashes</span></div>
+    <div class="pad"><div class="dual">
+      <div class="mini util ${sideC(M.teamA.side)}"><div class="mini-hdr">${esc(M.teamA.name)}<span class="sside">${M.teamA.side}</span></div>${utilTable(M.utility.teamA)}</div>
+      <div class="mini util ${sideC(M.teamB.side)}"><div class="mini-hdr">${esc(M.teamB.name)}<span class="sside">${M.teamB.side}</span></div>${utilTable(M.utility.teamB)}</div>
+    </div></div>
+
+    <div class="sect-hdr"><div class="tick"></div><h3>Economy &amp; Half Split</h3><span class="sub">buy breakdown</span></div>
+    <div class="pad"><div class="econ">
+      ${econCard(M.teamA, M.economy.teamA)}
+      ${econCard(M.teamB, M.economy.teamB)}
+    </div></div>
+
+    ${M.clutchMulti ? `
+    <div class="sect-hdr"><div class="tick"></div><h3>Clutches &amp; Multi-kills</h3><span class="sub">1vX &amp; multi-frag counts</span></div>
+    <div class="pad"><div class="dual">
+      <div class="mini cm ${sideC(M.teamA.side)}"><div class="mini-hdr">${esc(M.teamA.name)}<span class="sside">${M.teamA.side}</span></div>${cmTable(M.clutchMulti.teamA)}</div>
+      <div class="mini cm ${sideC(M.teamB.side)}"><div class="mini-hdr">${esc(M.teamB.name)}<span class="sside">${M.teamB.side}</span></div>${cmTable(M.clutchMulti.teamB)}</div>
+    </div></div>` : ''}
+
+    ${M.entryTrade ? `
+    <div class="sect-hdr"><div class="tick"></div><h3>Entry &amp; Trade</h3><span class="sub">first blood, trade frags, util dmg</span></div>
+    <div class="pad"><div class="dual">
+      <div class="mini et ${sideC(M.teamA.side)}"><div class="mini-hdr">${esc(M.teamA.name)}<span class="sside">${M.teamA.side}</span></div>${etTable(M.entryTrade.teamA)}</div>
+      <div class="mini et ${sideC(M.teamB.side)}"><div class="mini-hdr">${esc(M.teamB.name)}<span class="sside">${M.teamB.side}</span></div>${etTable(M.entryTrade.teamB)}</div>
+    </div></div>` : ''}
+
+    ${recordsHTML()}
+
+    ${M.aim ? `
+    <div class="sect-hdr"><div class="tick"></div><h3>Aim &amp; Accuracy</h3><span class="sub">shots, hit%, spray vs tap</span></div>
+    <div class="pad"><div class="dual">
+      <div class="mini aim ${sideC(M.teamA.side)}"><div class="mini-hdr">${esc(M.teamA.name)}<span class="sside">${M.teamA.side}</span></div>${aimTable(M.aim.teamA)}</div>
+      <div class="mini aim ${sideC(M.teamB.side)}"><div class="mini-hdr">${esc(M.teamB.name)}<span class="sside">${M.teamB.side}</span></div>${aimTable(M.aim.teamB)}</div>
+    </div>${aimFootHTML()}</div>` : ''}
+
+    ${bombHTML()}
+
+    ${footerHTML('DEEP STATS · 2/2')}
+  `;
+  window.__CARD_READY__ = true;
+})();
+</script>
+</body>
+</html>

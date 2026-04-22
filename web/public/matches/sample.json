@@ -1,0 +1,894 @@
+{
+  "id": "sample",
+  "version": 1,
+  "match": {
+    "date": "2026-04-20 22:14 UTC",
+    "durationLabel": "31m 49s",
+    "mapName": "de_ancient",
+    "mapPretty": "ancient",
+    "winner": "A",
+    "winnerName": "Team A",
+    "winnerLabel": "Team A wins · ancient",
+    "teamA": {
+      "name": "Team A",
+      "side": "T",
+      "score": 13,
+      "firstHalf": {
+        "side": "CT",
+        "score": 6
+      },
+      "secondHalf": {
+        "side": "T",
+        "score": 7
+      },
+      "players": [
+        {
+          "name": "BeDonkSlayer1987",
+          "mvpFlag": true,
+          "k": 22,
+          "d": 14,
+          "a": 7,
+          "adr": 117,
+          "hs": 54,
+          "kast": 85,
+          "mvp": 5,
+          "fk": 5,
+          "rating": 1.67
+        },
+        {
+          "name": "turd.exe",
+          "mvpFlag": false,
+          "k": 14,
+          "d": 13,
+          "a": 8,
+          "adr": 83.5,
+          "hs": 50,
+          "kast": 80,
+          "mvp": 1,
+          "fk": 2,
+          "rating": 1.21
+        },
+        {
+          "name": "fish",
+          "mvpFlag": false,
+          "k": 15,
+          "d": 14,
+          "a": 10,
+          "adr": 66.2,
+          "hs": 33,
+          "kast": 80,
+          "mvp": 3,
+          "fk": 2,
+          "rating": 1.18
+        },
+        {
+          "name": "Ma2",
+          "mvpFlag": false,
+          "k": 13,
+          "d": 14,
+          "a": 2,
+          "adr": 64.2,
+          "hs": 23,
+          "kast": 65,
+          "mvp": 3,
+          "fk": 3,
+          "rating": 0.94
+        },
+        {
+          "name": "Septic Tank sub 5 foid",
+          "mvpFlag": false,
+          "k": 9,
+          "d": 16,
+          "a": 6,
+          "adr": 64.9,
+          "hs": 11,
+          "kast": 70,
+          "mvp": 1,
+          "fk": 1,
+          "rating": 0.77
+        }
+      ]
+    },
+    "teamB": {
+      "name": "Team B",
+      "side": "CT",
+      "score": 7,
+      "firstHalf": {
+        "side": "T",
+        "score": 6
+      },
+      "secondHalf": {
+        "side": "CT",
+        "score": 1
+      },
+      "players": [
+        {
+          "name": "Dev",
+          "mvpFlag": false,
+          "k": 21,
+          "d": 14,
+          "a": 2,
+          "adr": 87.4,
+          "hs": 38,
+          "kast": 80,
+          "mvp": 2,
+          "fk": 0,
+          "rating": 1.47
+        },
+        {
+          "name": "Fadee227",
+          "mvpFlag": false,
+          "k": 15,
+          "d": 14,
+          "a": 6,
+          "adr": 83.9,
+          "hs": 33,
+          "kast": 75,
+          "mvp": 1,
+          "fk": 1,
+          "rating": 1.18
+        },
+        {
+          "name": "LilBeanBoi",
+          "mvpFlag": false,
+          "k": 14,
+          "d": 16,
+          "a": 5,
+          "adr": 76.8,
+          "hs": 35,
+          "kast": 80,
+          "mvp": 2,
+          "fk": 5,
+          "rating": 1.09
+        },
+        {
+          "name": "joyce",
+          "mvpFlag": false,
+          "k": 11,
+          "d": 16,
+          "a": 10,
+          "adr": 83.5,
+          "hs": 72,
+          "kast": 80,
+          "mvp": 1,
+          "fk": 0,
+          "rating": 1.01
+        },
+        {
+          "name": "Rexy",
+          "mvpFlag": false,
+          "k": 7,
+          "d": 15,
+          "a": 6,
+          "adr": 49.3,
+          "hs": 57,
+          "kast": 55,
+          "mvp": 1,
+          "fk": 1,
+          "rating": 0.55
+        }
+      ]
+    },
+    "highlights": [
+      {
+        "label": "MVP",
+        "player": "BeDonkSlayer1987",
+        "detail": "22k · 1.67 rating · 117 ADR"
+      },
+      {
+        "label": "BEST ENTRY",
+        "player": "BeDonkSlayer1987",
+        "detail": "5/5 opening duels (100%)"
+      },
+      {
+        "label": "CLUTCH",
+        "player": "Ma2",
+        "detail": "1v3 win · 2× clutch total"
+      },
+      {
+        "label": "UTILITY",
+        "player": "Rexy",
+        "detail": "181 utility damage"
+      },
+      {
+        "label": "4K",
+        "player": "BeDonkSlayer1987",
+        "detail": "clutch 4k"
+      }
+    ],
+    "roundFlow": [
+      {
+        "n": 1,
+        "winner": "CT"
+      },
+      {
+        "n": 2,
+        "winner": "CT"
+      },
+      {
+        "n": 3,
+        "winner": "T"
+      },
+      {
+        "n": 4,
+        "winner": "T"
+      },
+      {
+        "n": 5,
+        "winner": "CT"
+      },
+      {
+        "n": 6,
+        "winner": "CT"
+      },
+      {
+        "n": 7,
+        "winner": "CT"
+      },
+      {
+        "n": 8,
+        "winner": "CT"
+      },
+      {
+        "n": 9,
+        "winner": "T"
+      },
+      {
+        "n": 10,
+        "winner": "CT"
+      },
+      {
+        "n": 11,
+        "winner": "CT"
+      },
+      {
+        "n": 12,
+        "winner": "T",
+        "halftime": true
+      },
+      {
+        "n": 13,
+        "winner": "T"
+      },
+      {
+        "n": 14,
+        "winner": "CT"
+      },
+      {
+        "n": 15,
+        "winner": "T"
+      },
+      {
+        "n": 16,
+        "winner": "T"
+      },
+      {
+        "n": 17,
+        "winner": "T"
+      },
+      {
+        "n": 18,
+        "winner": "T"
+      },
+      {
+        "n": 19,
+        "winner": "T"
+      },
+      {
+        "n": 20,
+        "winner": "T"
+      }
+    ],
+    "openingDuels": {
+      "teamA": [
+        {
+          "name": "BeDonkSlayer1987",
+          "att": 5,
+          "wins": 5,
+          "losses": 0,
+          "pct": 100,
+          "ct": "2/2",
+          "t": "3/3"
+        },
+        {
+          "name": "Ma2",
+          "att": 4,
+          "wins": 2,
+          "losses": 2,
+          "pct": 50,
+          "ct": "0/1",
+          "t": "2/3"
+        },
+        {
+          "name": "turd.exe",
+          "att": 4,
+          "wins": 2,
+          "losses": 2,
+          "pct": 50,
+          "ct": "2/4",
+          "t": "0/0"
+        },
+        {
+          "name": "fish",
+          "att": 2,
+          "wins": 2,
+          "losses": 0,
+          "pct": 100,
+          "ct": "2/2",
+          "t": "0/0"
+        },
+        {
+          "name": "Septic Tank sub 5 foid",
+          "att": 3,
+          "wins": 1,
+          "losses": 2,
+          "pct": 33.3,
+          "ct": "0/1",
+          "t": "1/2"
+        }
+      ],
+      "teamB": [
+        {
+          "name": "LilBeanBoi",
+          "att": 7,
+          "wins": 4,
+          "losses": 3,
+          "pct": 57.1,
+          "ct": "2/2",
+          "t": "2/5"
+        },
+        {
+          "name": "joyce",
+          "att": 6,
+          "wins": 2,
+          "losses": 4,
+          "pct": 33.3,
+          "ct": "0/0",
+          "t": "2/6"
+        },
+        {
+          "name": "Rexy",
+          "att": 4,
+          "wins": 1,
+          "losses": 3,
+          "pct": 25,
+          "ct": "0/3",
+          "t": "1/1"
+        },
+        {
+          "name": "Fadee227",
+          "att": 3,
+          "wins": 1,
+          "losses": 2,
+          "pct": 33.3,
+          "ct": "0/1",
+          "t": "1/2"
+        },
+        {
+          "name": "Dev",
+          "att": 2,
+          "wins": 0,
+          "losses": 2,
+          "pct": 0,
+          "ct": "0/2",
+          "t": "0/0"
+        }
+      ]
+    },
+    "utility": {
+      "teamA": [
+        {
+          "name": "fish",
+          "heDmg": 115,
+          "hePerRnd": 5.8,
+          "flashes": 28,
+          "enemiesFlashed": 25,
+          "blindTime": 69.4,
+          "flashAssists": 4,
+          "smokes": 20
+        },
+        {
+          "name": "BeDonkSlayer1987",
+          "heDmg": 142,
+          "hePerRnd": 7.1,
+          "flashes": 14,
+          "enemiesFlashed": 8,
+          "blindTime": 25,
+          "flashAssists": 0,
+          "smokes": 5
+        },
+        {
+          "name": "Ma2",
+          "heDmg": 32,
+          "hePerRnd": 1.6,
+          "flashes": 14,
+          "enemiesFlashed": 15,
+          "blindTime": 25.9,
+          "flashAssists": 0,
+          "smokes": 7
+        },
+        {
+          "name": "turd.exe",
+          "heDmg": 71,
+          "hePerRnd": 3.6,
+          "flashes": 22,
+          "enemiesFlashed": 7,
+          "blindTime": 18.1,
+          "flashAssists": 1,
+          "smokes": 14
+        },
+        {
+          "name": "Septic Tank sub 5 foid",
+          "heDmg": 53,
+          "hePerRnd": 2.7,
+          "flashes": 10,
+          "enemiesFlashed": 5,
+          "blindTime": 11.9,
+          "flashAssists": 0,
+          "smokes": 7
+        }
+      ],
+      "teamB": [
+        {
+          "name": "Dev",
+          "heDmg": 47,
+          "hePerRnd": 2.4,
+          "flashes": 44,
+          "enemiesFlashed": 37,
+          "blindTime": 104.9,
+          "flashAssists": 2,
+          "smokes": 18
+        },
+        {
+          "name": "Rexy",
+          "heDmg": 181,
+          "hePerRnd": 9.1,
+          "flashes": 4,
+          "enemiesFlashed": 2,
+          "blindTime": 6.4,
+          "flashAssists": 1,
+          "smokes": 8
+        },
+        {
+          "name": "Fadee227",
+          "heDmg": 157,
+          "hePerRnd": 7.9,
+          "flashes": 24,
+          "enemiesFlashed": 5,
+          "blindTime": 13.3,
+          "flashAssists": 0,
+          "smokes": 9
+        },
+        {
+          "name": "joyce",
+          "heDmg": 57,
+          "hePerRnd": 2.9,
+          "flashes": 16,
+          "enemiesFlashed": 6,
+          "blindTime": 16.2,
+          "flashAssists": 0,
+          "smokes": 5
+        },
+        {
+          "name": "LilBeanBoi",
+          "heDmg": 3,
+          "hePerRnd": 0.2,
+          "flashes": 8,
+          "enemiesFlashed": 5,
+          "blindTime": 14.6,
+          "flashAssists": 0,
+          "smokes": 0
+        }
+      ]
+    },
+    "economy": {
+      "teamA": {
+        "half": "CT 6 → T 7",
+        "pistols": 0,
+        "ecos": 0,
+        "forces": 5,
+        "fullBuys": 7
+      },
+      "teamB": {
+        "half": "T 6 → CT 1",
+        "pistols": 1,
+        "ecos": 0,
+        "forces": 3,
+        "fullBuys": 3
+      }
+    },
+    "duelMatrix": {
+      "players": [
+        {
+          "name": "BeDonkSlayer1987",
+          "team": "A"
+        },
+        {
+          "name": "fish",
+          "team": "A"
+        },
+        {
+          "name": "Ma2",
+          "team": "A"
+        },
+        {
+          "name": "Septic Tank sub 5 foid",
+          "team": "A"
+        },
+        {
+          "name": "turd.exe",
+          "team": "A"
+        },
+        {
+          "name": "Dev",
+          "team": "B"
+        },
+        {
+          "name": "Fadee227",
+          "team": "B"
+        },
+        {
+          "name": "joyce",
+          "team": "B"
+        },
+        {
+          "name": "LilBeanBoi",
+          "team": "B"
+        },
+        {
+          "name": "Rexy",
+          "team": "B"
+        }
+      ],
+      "kills": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          3,
+          5,
+          6
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          0,
+          7,
+          4,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          6,
+          2,
+          0,
+          3,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          3,
+          2,
+          2,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          4,
+          4,
+          2,
+          3
+        ],
+        [
+          7,
+          4,
+          2,
+          4,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          4,
+          3,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          2,
+          3,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          2,
+          3,
+          3,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          3,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "heatmap": {
+      "radarFileUrl": "de_ancient",
+      "prettyMap": "ancient",
+      "size": 600,
+      "dots": [
+        {
+          "x": 378,
+          "y": 141.8,
+          "side": "T"
+        },
+        {
+          "x": 66.1,
+          "y": 412,
+          "side": "CT"
+        },
+        {
+          "x": 107.2,
+          "y": 267.4,
+          "side": "CT"
+        },
+        {
+          "x": 463,
+          "y": 121.2,
+          "side": "T"
+        },
+        {
+          "x": 303.3,
+          "y": 502,
+          "side": "T"
+        },
+        {
+          "x": 101.9,
+          "y": 359.2,
+          "side": "CT"
+        },
+        {
+          "x": 132.7,
+          "y": 175.3,
+          "side": "CT"
+        },
+        {
+          "x": 303.9,
+          "y": 326.2,
+          "side": "CT"
+        },
+        {
+          "x": 477.3,
+          "y": 447.1,
+          "side": "CT"
+        },
+        {
+          "x": 531,
+          "y": 351.7,
+          "side": "CT"
+        },
+        {
+          "x": 497.7,
+          "y": 178.4,
+          "side": "T"
+        },
+        {
+          "x": 395.5,
+          "y": 142,
+          "side": "T"
+        },
+        {
+          "x": 533.4,
+          "y": 339.6,
+          "side": "T"
+        },
+        {
+          "x": 426.2,
+          "y": 460.8,
+          "side": "T"
+        },
+        {
+          "x": 341.9,
+          "y": 89,
+          "side": "T"
+        },
+        {
+          "x": 351.2,
+          "y": 364.1,
+          "side": "CT"
+        },
+        {
+          "x": 426.2,
+          "y": 187,
+          "side": "CT"
+        },
+        {
+          "x": 118.9,
+          "y": 157.8,
+          "side": "T"
+        },
+        {
+          "x": 423.1,
+          "y": 334.1,
+          "side": "CT"
+        },
+        {
+          "x": 424.4,
+          "y": 502.7,
+          "side": "CT"
+        },
+        {
+          "x": 527.9,
+          "y": 351.6,
+          "side": "T"
+        },
+        {
+          "x": 126.9,
+          "y": 247.1,
+          "side": "CT"
+        },
+        {
+          "x": 303.3,
+          "y": 305,
+          "side": "CT"
+        },
+        {
+          "x": 354.2,
+          "y": 365.9,
+          "side": "CT"
+        },
+        {
+          "x": 79,
+          "y": 308.6,
+          "side": "T"
+        },
+        {
+          "x": 421.6,
+          "y": 357,
+          "side": "T"
+        },
+        {
+          "x": 517.2,
+          "y": 280.6,
+          "side": "CT"
+        },
+        {
+          "x": 435.1,
+          "y": 360.8,
+          "side": "T"
+        },
+        {
+          "x": 518.6,
+          "y": 115.7,
+          "side": "T"
+        },
+        {
+          "x": 390.1,
+          "y": 454.9,
+          "side": "T"
+        },
+        {
+          "x": 209.5,
+          "y": 120.7,
+          "side": "CT"
+        },
+        {
+          "x": 508.7,
+          "y": 108.4,
+          "side": "T"
+        },
+        {
+          "x": 344.4,
+          "y": 291.3,
+          "side": "T"
+        },
+        {
+          "x": 154.7,
+          "y": 70.4,
+          "side": "T"
+        },
+        {
+          "x": 254.5,
+          "y": 509,
+          "side": "T"
+        },
+        {
+          "x": 333.5,
+          "y": 400.7,
+          "side": "T"
+        },
+        {
+          "x": 354,
+          "y": 374.2,
+          "side": "CT"
+        },
+        {
+          "x": 233.4,
+          "y": 314.3,
+          "side": "T"
+        },
+        {
+          "x": 272,
+          "y": 322.9,
+          "side": "T"
+        },
+        {
+          "x": 159.7,
+          "y": 94.3,
+          "side": "T"
+        }
+      ],
+      "totalKills": 40
+    },
+    "heroMapImage": "de_ancient",
+    "mvpFooterName": "BeDonkSlayer1987",
+    "halfA": {
+      "first": "CT 6",
+      "second": "T 7"
+    },
+    "halfB": {
+      "first": "T 6",
+      "second": "CT 1"
+    },
+    "clutchMulti": null,
+    "entryTrade": null,
+    "records": null,
+    "aim": null,
+    "bombPlays": null,
+    "source": "valve",
+    "shareCode": null,
+    "serverName": null
+  },
+  "players": []
+}

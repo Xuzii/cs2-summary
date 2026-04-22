@@ -1,0 +1,15 @@
+node_modules/
+data/
+.env
+*.log
+dist/
+out/
+.DS_Store
+vendor/csda/
+
+publish/
+web/dist/
+web/public/matches/*
+!web/public/matches/sample.json
+
+.claude/settings.local.json
