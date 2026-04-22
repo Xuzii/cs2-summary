@@ -7,6 +7,8 @@ export interface AimRow {
   shots: number;
   hitPct: number;
   hsAcc: number;
+  /** Headshot kills as a percentage of total kills (distinct from hsAcc). */
+  hsPct: number;
   sprayAcc: number;
   tapAcc: number;
   movingPct: number;
@@ -74,6 +76,7 @@ export function computeAim(match: Match): AimPanel {
 
     const flashKills = killsByPlayer.filter((k) => k.isAssistedFlash).length;
     const blindKills = killsByPlayer.filter((k) => k.isKillerBlinded).length;
+    const hsKillCount = killsByPlayer.filter((k) => k.isHeadshot).length;
 
     rows.push({
       name: p.name,
@@ -82,6 +85,7 @@ export function computeAim(match: Match): AimPanel {
       shots: pShots.length,
       hitPct: pShots.length === 0 ? 0 : round1((hitCount / pShots.length) * 100),
       hsAcc: pShots.length === 0 ? 0 : round1((hsCount / pShots.length) * 100),
+      hsPct: killsByPlayer.length === 0 ? 0 : round1((hsKillCount / killsByPlayer.length) * 100),
       tapAcc: tap === 0 ? 0 : round1((tapHits / tap) * 100),
       sprayAcc: spray === 0 ? 0 : round1((sprayHits / spray) * 100),
       movingPct: pShots.length === 0 ? 0 : round1((movingCount / pShots.length) * 100),

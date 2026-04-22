@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * One-time setup for the interactive HTML export to GitHub Pages.
+ * One-time setup for the static HTML export to GitHub Pages.
  *
- * What it does:
- *  1. Builds the React app (`npm run build` inside web/).
- *  2. Clones the target GitHub repo into ./publish (config via env / flags).
- *  3. Creates/initializes the `gh-pages` orphan branch.
- *  4. Copies the built dist/ over and pushes the first deploy.
+ * The web/ tree is now a no-build static site (plain HTML + JSX transpiled
+ * in-browser by @babel/standalone), so this script simply:
+ *  1. Clones the target GitHub repo into ./publish (config via env / flags).
+ *  2. Creates/initializes the `gh-pages` orphan branch.
+ *  3. Copies web/index.html, web/src/**, web/static/** onto gh-pages.
+ *  4. Pushes the first deploy.
  *  5. Leaves ./publish as a working clone of the gh-pages branch so the
  *     pipeline's `src/web/deploy.ts` can just `git add matches/<id>.json && git push`.
  *
@@ -44,15 +45,6 @@ function run(cmd, args, cwd) {
   });
 }
 
-/**
- * Build a spawn invocation that survives Windows' two landmines:
- *  1. Node 20+ refuses to spawn `.cmd`/`.bat` files without `shell: true`
- *     (BatBadBut mitigation, CVE-2024-27980).
- *  2. `shell: true` on Windows runs through cmd.exe, which splits args on
- *     spaces unless each arg is manually quoted.
- * We handle both by shell-quoting args and setting windowsVerbatimArguments so
- * the shell sees our quotes literally rather than stripping them.
- */
 function shellSafeCmd(cmd, args) {
   if (process.platform !== 'win32') {
     return { execCmd: cmd, execArgs: args, useShell: false };
@@ -71,24 +63,20 @@ async function exists(p) {
 
 console.log(`Setup target:\n  repo        = ${REPO}\n  publish dir = ${PUBLISH}\n`);
 
-// 1. Build the web app.
-console.log('[1/5] Installing + building web/');
-if (!(await exists(path.join(WEB, 'node_modules')))) {
-  await run('npm', ['install'], WEB);
-}
-await run('npm', ['run', 'build'], WEB);
-const DIST = path.join(WEB, 'dist');
-if (!(await exists(DIST))) {
-  console.error(`Build output not found at ${DIST}. Aborting.`);
-  process.exit(1);
+// 1. Verify the static web tree exists.
+console.log('[1/4] Verifying static web/ tree');
+for (const required of ['index.html', 'src/app.jsx', 'src/adapter.js', 'src/radar.js', 'src/styles.css']) {
+  if (!(await exists(path.join(WEB, required)))) {
+    console.error(`Missing expected file: web/${required}. Aborting.`);
+    process.exit(1);
+  }
 }
 
 // 2. Prepare publish dir — clone if empty, else reuse.
-console.log('\n[2/5] Preparing publish clone');
+console.log('\n[2/4] Preparing publish clone');
 await mkdir(path.dirname(PUBLISH), { recursive: true });
 const alreadyCloned = await exists(path.join(PUBLISH, '.git'));
 if (!alreadyCloned) {
-  // If the dir exists but isn't a git repo, bail out rather than clobber.
   if (await exists(PUBLISH)) {
     const entries = await readdir(PUBLISH);
     if (entries.length > 0) {
@@ -103,7 +91,7 @@ if (!alreadyCloned) {
 }
 
 // 3. Check out gh-pages (create orphan branch if missing).
-console.log('\n[3/5] Switching to gh-pages branch');
+console.log('\n[3/4] Switching to gh-pages branch');
 const branches = await capture('git', ['branch', '-a'], PUBLISH);
 const hasLocal = /\bgh-pages\b/.test(branches.split('\n').filter((l) => !l.includes('remotes/')).join('\n'));
 const hasRemote = /remotes\/origin\/gh-pages/.test(branches);
@@ -114,36 +102,47 @@ if (hasLocal) {
   await run('git', ['checkout', '-t', 'origin/gh-pages'], PUBLISH);
 } else {
   await run('git', ['checkout', '--orphan', 'gh-pages'], PUBLISH);
-  // Clear the index so stale main-branch files don't carry over.
   await run('git', ['rm', '-rf', '--ignore-unmatch', '.'], PUBLISH);
 }
 
-// 4. Copy built site in + preserve any existing matches/.
-console.log('\n[4/5] Staging built site into gh-pages');
-// Remove build-managed dirs (index.html, app/, static/) but keep matches/.
-for (const victim of ['index.html', 'app', 'static', '.nojekyll']) {
+// 4. Stage + push.
+console.log('\n[4/4] Staging static site into gh-pages');
+// Remove previously published static tree (keep matches/ so existing match
+// JSONs survive a redeploy).
+for (const victim of ['index.html', 'src', 'static', 'app', 'dist', '.nojekyll']) {
   const victimPath = path.join(PUBLISH, victim);
   if (await exists(victimPath)) {
     await rm(victimPath, { recursive: true, force: true });
   }
 }
-// Copy each top-level entry of dist/ into PUBLISH.
-for (const entry of await readdir(DIST)) {
-  await cp(path.join(DIST, entry), path.join(PUBLISH, entry), { recursive: true });
+
+// Copy the static site bits.
+await cp(path.join(WEB, 'index.html'), path.join(PUBLISH, 'index.html'));
+await cp(path.join(WEB, 'src'), path.join(PUBLISH, 'src'), { recursive: true });
+// public/static -> static (radars + fonts); public/matches is handled by the
+// per-demo deploy step, but seed an empty directory for the first push.
+const publicStatic = path.join(WEB, 'static');
+if (await exists(publicStatic)) {
+  await cp(publicStatic, path.join(PUBLISH, 'static'), { recursive: true });
 }
-// Ensure matches/ exists so the first pipeline run doesn't have to create it.
 await mkdir(path.join(PUBLISH, 'matches'), { recursive: true });
+
+// Seed a matches/index.json if one already exists locally.
+const localIndex = path.join(WEB, 'matches', 'index.json');
+if (await exists(localIndex)) {
+  await cp(localIndex, path.join(PUBLISH, 'matches', 'index.json'));
+}
+
 // Empty-file marker prevents Jekyll from eating our build output.
 await writeFile(path.join(PUBLISH, '.nojekyll'), '', 'utf8');
 
-// 5. Commit + push.
-console.log('\n[5/5] Committing + pushing initial deploy');
+console.log('\nCommitting + pushing initial deploy');
 await run('git', ['add', '-A'], PUBLISH);
 const status = await capture('git', ['status', '--porcelain'], PUBLISH);
 if (status.trim().length === 0) {
   console.log('  (no changes to commit — gh-pages already up to date)');
 } else {
-  await run('git', ['commit', '-m', 'initial gh-pages build'], PUBLISH);
+  await run('git', ['commit', '-m', 'static site deploy'], PUBLISH);
 }
 await run('git', ['push', '-u', 'origin', 'gh-pages'], PUBLISH);
 

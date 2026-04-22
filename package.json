@@ -16,8 +16,7 @@
     "inspect": "tsx --max-old-space-size=4096 src/cli/inspect.ts",
     "render-json": "tsx --max-old-space-size=4096 src/cli/render-from-json.ts",
     "typecheck": "tsc --noEmit",
-    "web:dev": "npm --prefix web run dev",
-    "web:build": "npm --prefix web run build",
+    "web:serve": "cd web && python -m http.server 8000",
     "web:setup": "node scripts/setup-web-publish.mjs"
   },
   "dependencies": {

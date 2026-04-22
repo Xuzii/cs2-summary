@@ -9,7 +9,8 @@ vendor/csda/
 
 publish/
 web/dist/
-web/public/matches/*
-!web/public/matches/sample.json
+web/matches/*.json
+!web/matches/index.json
+!web/matches/sample.json
 
 .claude/settings.local.json

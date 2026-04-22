@@ -1,27 +1,27 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1280" />
-    <title>CS2 Match Analytics</title>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CS2 · Match Analytics</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <meta property="og:title" content="CS2 Match Analytics" />
-    <meta
-      property="og:description"
-      content="Interactive CS2 match breakdown — overview, 2D round playback, analytics, player cards, and history."
-    />
-    <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#05070a" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<link rel="stylesheet" href="src/styles.css?v=11"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Radar calibration + world->600 coord helpers (plain JS, loads before adapter). -->
+<script src="src/radar.js?v=1"></script>
+<!-- Adapter fetches MatchDocument JSON, populates window.MOCK + MOCK_EXTRA,
+     then injects the babel script tags for the UI components. -->
+<script src="src/adapter.js?v=1"></script>
+</body>
 </html>

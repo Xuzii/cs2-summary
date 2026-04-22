@@ -10,6 +10,10 @@ export interface EntryTradeRow {
   tradeDeaths: number;
   utilityDamage: number;
   utilPerRound: number;
+  /** Total health damage dealt across the match (sum of damages[].healthDamage). */
+  dmgGiven: number;
+  /** Total health damage received across the match. */
+  dmgTaken: number;
 }
 
 /**
@@ -22,6 +26,16 @@ export interface EntryTradeRow {
  * alongside `averageUtilityDamagePerRound` for convenience.
  */
 export function computeEntryTrade(match: Match): EntryTradeRow[] {
+  const damages = match.damages ?? [];
+  const givenBy = new Map<string, number>();
+  const takenBy = new Map<string, number>();
+  for (const d of damages) {
+    const hp = d.healthDamage ?? 0;
+    if (hp <= 0) continue;
+    if (d.attackerSteamId) givenBy.set(d.attackerSteamId, (givenBy.get(d.attackerSteamId) ?? 0) + hp);
+    if (d.victimSteamId) takenBy.set(d.victimSteamId, (takenBy.get(d.victimSteamId) ?? 0) + hp);
+  }
+
   return match.players
     .map((p): EntryTradeRow => {
       const teamLetter: 'A' | 'B' = p.teamName === match.teamA.name ? 'A' : 'B';
@@ -35,6 +49,8 @@ export function computeEntryTrade(match: Match): EntryTradeRow[] {
         tradeDeaths: p.tradeDeathCount ?? 0,
         utilityDamage: p.utilityDamage ?? 0,
         utilPerRound: round1(p.averageUtilityDamagePerRound ?? 0),
+        dmgGiven: givenBy.get(p.steamId) ?? 0,
+        dmgTaken: takenBy.get(p.steamId) ?? 0,
       };
     })
     .sort((a, b) => {
