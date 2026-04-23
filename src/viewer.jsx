@@ -64,18 +64,25 @@ function RoundViewer({ match, initialRound = 1 }) {
   }, [playing]);
 
   // sample positions — bracket and lerp by point.t so movement animates
-  // smoothly regardless of sample spacing
+  // smoothly regardless of sample spacing. HP uses the left bracket (no lerp):
+  // CS2 health is a step function that changes on damage events, and
+  // interpolating across a hit produces nonsense fractional HP.
   const playerStates = useMemV(() => {
     return round.tracks.map(trk => {
       const pts = trk.points;
-      let pos;
+      let pos, hp = 100, alive = true;
       if (!pts || pts.length === 0) pos = { x: 300, y: 300 };
-      else if (pts.length === 1) pos = pts[0];
-      else {
+      else if (pts.length === 1) {
+        pos = pts[0];
+        hp = pts[0].hp ?? 100;
+        alive = pts[0].alive !== false;
+      } else {
         let i = 0;
         while (i < pts.length - 1 && pts[i + 1].t <= t) i++;
         const a = pts[i];
         const b = pts[Math.min(i + 1, pts.length - 1)];
+        hp = a.hp ?? 100;
+        alive = a.alive !== false;
         if (b.t === a.t) pos = a;
         else {
           const u = Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t)));
@@ -83,7 +90,7 @@ function RoundViewer({ match, initialRound = 1 }) {
         }
       }
       const died = round.deaths.find(d => d.victim === trk.name && d.t <= t);
-      return { ...trk, pos: died ? died.victimPos : pos, dead: !!died };
+      return { ...trk, pos: died ? died.victimPos : pos, dead: !!died || !alive, hp };
     });
   }, [t, round]);
 
@@ -241,7 +248,7 @@ function RoundViewer({ match, initialRound = 1 }) {
                 {grp.map(p => {
                   const invEntry = INV[roundN]?.[p.name];
                   const inv = invEntry || { hp: 100, armor: 0, primary: null, secondary: 'usp_s', nades: [] };
-                  const hp = p.dead ? 0 : Math.max(0, inv.hp - Math.floor((t/round.duration) * 30));
+                  const hp = p.dead ? 0 : p.hp;
                   return (
                     <div key={p.name} className={`pcard ${p.side.toLowerCase()} ${p.dead ? 'dead' : ''}`}>
                       <div className="pn">

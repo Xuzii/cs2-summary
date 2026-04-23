@@ -271,7 +271,13 @@
         .map((trk) => {
           const points = (trk.points || []).map((p) => {
             const r = remap(p);
-            return { t: p.t ?? 0, x: r.x, y: r.y };
+            return {
+              t: p.t ?? 0,
+              x: r.x,
+              y: r.y,
+              hp: typeof p.health === 'number' ? p.health : 100,
+              alive: p.isAlive !== false,
+            };
           });
           // Ensure every track has at least one point so the viewer can
           // sample without a guard. Tracks with no recorded positions get a
