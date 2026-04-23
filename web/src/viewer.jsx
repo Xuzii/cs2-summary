@@ -24,14 +24,15 @@ function RoundViewer({ match, initialRound = 1 }) {
 
   useEfV(() => { setT(round.freezetimeEndT || 0); }, [roundN]);
 
-  // Playback loop — only active while `playing` is true. Uses rAF with a
-  // setInterval fallback so tabs that Chromium is throttling (background
-  // tab, inactive window) still advance. The previous implementation ran a
-  // continuous rAF loop guarded by a ref, but refs set during render are
-  // unreliable under React 18 strict mode / concurrent renders, and the
-  // whole loop silently stalls when rAF is paused. Keying on [playing]
-  // means the next tick is scheduled from the same call site every frame,
-  // and the effect cleanly tears down when paused or unmounted.
+  // Playback loop — only active while `playing` is true. Uses exactly one
+  // timing source at a time: rAF for foreground (uniform ~16 ms frames,
+  // smooth motion) and a 250 ms setInterval for hidden tabs (Chromium
+  // throttles rAF on hidden tabs, so the fallback keeps `t` advancing for
+  // users who switch away mid-round). Running rAF + setInterval
+  // simultaneously, which the previous version did, causes the interval to
+  // consume a small `dt` slice every ~100 ms and leaves an uneven
+  // 16/4/12/16/4/12-ms cadence between renders — visible as sporadic dot
+  // movement on a focused tab.
   useEfV(() => {
     if (!playing) return;
     let last = performance.now();
@@ -52,14 +53,28 @@ function RoundViewer({ match, initialRound = 1 }) {
       advance(performance.now());
       rafId = requestAnimationFrame(tick);
     };
-    rafId = requestAnimationFrame(tick);
-    // Backup: if rAF is paused (hidden tab / heavily throttled), a 100ms
-    // interval keeps playback moving. advance() dedups via `last`, so the
-    // two paths never double-advance — whichever fires first wins the tick.
-    intervalId = setInterval(() => advance(performance.now()), 100);
+    const stop = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (intervalId) clearInterval(intervalId);
+      rafId = 0;
+      intervalId = 0;
+    };
+    const start = () => {
+      // Reset `last` each time we switch timing sources so the first tick
+      // doesn't see a massive `dt` from the gap while nothing was running.
+      last = performance.now();
+      if (document.hidden) {
+        intervalId = setInterval(() => advance(performance.now()), 250);
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    const onVis = () => { stop(); start(); };
+    start();
+    document.addEventListener('visibilitychange', onVis);
     return () => {
-      cancelAnimationFrame(rafId);
-      clearInterval(intervalId);
+      stop();
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, [playing]);
 
