@@ -311,12 +311,46 @@
         weapon: ev.weapon ? stripWeaponPrefix(ev.weapon) : ev.weapon,
       }));
 
+      // Freeze-time end (seconds). Prefer the field emitted by playback.ts.
+      // For JSON files generated before that field existed, derive it from
+      // the position data: the first sample timestamp where any player's
+      // (x,y) diverges from their frame-0 position. This keeps old exports
+      // working without a re-parse (which for some matches isn't possible —
+      // the raw analyzer JSON is gigabytes and may not be retained on disk).
+      let freezetimeEndT = typeof pr.freezetimeEndT === 'number' ? pr.freezetimeEndT : 0;
+      if (!freezetimeEndT) {
+        let firstMove = Infinity;
+        for (const trk of tracks) {
+          const pts = trk.points;
+          if (!pts || pts.length < 2) continue;
+          const x0 = pts[0].x;
+          const y0 = pts[0].y;
+          for (let i = 1; i < pts.length; i++) {
+            if (Math.abs(pts[i].x - x0) > 1 || Math.abs(pts[i].y - y0) > 1) {
+              if (pts[i].t < firstMove) firstMove = pts[i].t;
+              break;
+            }
+          }
+        }
+        if (Number.isFinite(firstMove)) freezetimeEndT = firstMove;
+      }
+
+      // Extend duration to cover the full position capture window. csda
+      // writes position frames through `endOfficiallyTick` (~7s past the
+      // end of round events), but round.duration only spans start→end. If
+      // the scrubber clamps at durationSec the last few seconds of walking
+      // back to cover / post-plant never render.
+      let effectiveDuration = durationSec;
+      const maxPointT = Math.max(0, ...tracks.flatMap((t) => t.points.map((p) => p.t ?? 0)));
+      if (maxPointT > effectiveDuration) effectiveDuration = maxPointT;
+
       return {
         n: pr.n,
         winner: pr.winner,
         halftime: !!pr.halftime,
         endReason: pr.endReason || detail.endReason || 'Eliminated',
-        duration: durationSec,
+        duration: effectiveDuration,
+        freezetimeEndT,
         bomb: pr.bomb || { planted: false },
         bombPlantT: pr.bombPlantT ?? null,
         bombDefuseT: pr.bombDefuseT ?? null,

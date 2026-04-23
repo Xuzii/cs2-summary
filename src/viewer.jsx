@@ -7,43 +7,61 @@ function RoundViewer({ match, initialRound = 1 }) {
   const [roundN, setRoundN] = useStV(initialRound);
   const round = ROUNDS.find(r => r.n === roundN) || ROUNDS[0];
 
-  const [t, setT] = useStV(0);
-  const [playing, setPlaying] = useStV(true);
+  // Start playback at the end of freeze time, matching cs-demo-manager's
+  // 2D viewer. In CS2 freeze lasts ~20s (or ~26.6s for round-1/half-start),
+  // and during freeze player positions are pinned at spawn — so opening at
+  // t=0 makes the first ~20 real-world seconds look like the viewer is
+  // broken. Jumping straight to freeze-end means motion begins within ~1
+  // frame of the user clicking play.
+  const [t, setT] = useStV(round.freezetimeEndT || 0);
+  const [playing, setPlaying] = useStV(false);
   const [speed, setSpeed] = useStV(1);
   const tr = useRfV();
-  // Refs so the rAF loop reads the latest values without restarting on toggle.
-  const playingRef = useRfV(playing);
   const speedRef = useRfV(speed);
   const durationRef = useRfV(round.duration);
-  playingRef.current = playing;
   speedRef.current = speed;
   durationRef.current = round.duration;
 
-  useEfV(() => { setT(0); }, [roundN]);
+  useEfV(() => { setT(round.freezetimeEndT || 0); }, [roundN]);
 
-  // Single continuous rAF loop — never restart on play/pause toggle. The old
-  // version re-created the loop on every toggle, which lost ticks and burned
-  // the first frame on dt=0, so the play button looked like it "did nothing".
-  // lastTs is advanced every frame regardless of playing, so resuming after a
-  // long pause yields a sane ~16ms dt instead of a snap-forward.
+  // Playback loop — only active while `playing` is true. Uses rAF with a
+  // setInterval fallback so tabs that Chromium is throttling (background
+  // tab, inactive window) still advance. The previous implementation ran a
+  // continuous rAF loop guarded by a ref, but refs set during render are
+  // unreliable under React 18 strict mode / concurrent renders, and the
+  // whole loop silently stalls when rAF is paused. Keying on [playing]
+  // means the next tick is scheduled from the same call site every frame,
+  // and the effect cleanly tears down when paused or unmounted.
   useEfV(() => {
-    let rafId;
-    let lastTs = 0;
-    const tick = (now) => {
-      const dt = lastTs ? (now - lastTs) / 1000 : 0;
-      lastTs = now;
-      if (playingRef.current && dt > 0) {
+    if (!playing) return;
+    let last = performance.now();
+    let rafId = 0;
+    let intervalId = 0;
+    const advance = (now) => {
+      const dt = Math.max(0, (now - last) / 1000);
+      last = now;
+      if (dt > 0) {
         setT(prev => {
           const nx = prev + dt * speedRef.current;
           if (nx >= durationRef.current) { setPlaying(false); return durationRef.current; }
           return nx;
         });
       }
+    };
+    const tick = () => {
+      advance(performance.now());
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, []);
+    // Backup: if rAF is paused (hidden tab / heavily throttled), a 100ms
+    // interval keeps playback moving. advance() dedups via `last`, so the
+    // two paths never double-advance — whichever fires first wins the tick.
+    intervalId = setInterval(() => advance(performance.now()), 100);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearInterval(intervalId);
+    };
+  }, [playing]);
 
   // sample positions — bracket and lerp by point.t so movement animates
   // smoothly regardless of sample spacing
@@ -171,8 +189,8 @@ function RoundViewer({ match, initialRound = 1 }) {
               <div className="scrub-time"><b>{t.toFixed(1)}</b><span className="e"> / {round.duration.toFixed(1)}s</span></div>
               <div className="scrub-track" onClick={onSeek} ref={tr}>
                 <div className="scrub-fill" style={{width: `${(t/round.duration)*100}%`}}/>
-                {/* freeze time */}
-                <div className="scrub-mk freeze" style={{left: `${(7/round.duration)*100}%`}}>
+                {/* freeze time — actual end derived from csda freezeTimeEndTick */}
+                <div className="scrub-mk freeze" style={{left: `${((round.freezetimeEndT || 0)/round.duration)*100}%`}}>
                   <span className="lbl" style={{color:'var(--subtle)'}}>FREEZE</span>
                 </div>
                 {round.bombPlantT != null && (
