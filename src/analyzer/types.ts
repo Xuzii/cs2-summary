@@ -88,7 +88,11 @@ export interface MatchPlayer {
 export interface Round {
   number: number;
   startTick?: number;
+  /** Tick at which freeze time ends and the round actually begins. */
+  freezeTimeEndTick?: number;
   endTick?: number;
+  /** Last tick of the post-round capture window (csda emits position frames through here). */
+  endOfficiallyTick?: number;
   teamAScore?: number;
   teamBScore?: number;
   teamASide?: TeamSide;

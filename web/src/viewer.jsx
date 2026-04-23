@@ -7,8 +7,14 @@ function RoundViewer({ match, initialRound = 1 }) {
   const [roundN, setRoundN] = useStV(initialRound);
   const round = ROUNDS.find(r => r.n === roundN) || ROUNDS[0];
 
-  const [t, setT] = useStV(0);
-  const [playing, setPlaying] = useStV(true);
+  // Start playback at the end of freeze time, matching cs-demo-manager's
+  // 2D viewer. In CS2 freeze lasts ~20s (or ~26.6s for round-1/half-start),
+  // and during freeze player positions are pinned at spawn — so opening at
+  // t=0 makes the first ~20 real-world seconds look like the viewer is
+  // broken. Jumping straight to freeze-end means motion begins within ~1
+  // frame of the user clicking play.
+  const [t, setT] = useStV(round.freezetimeEndT || 0);
+  const [playing, setPlaying] = useStV(false);
   const [speed, setSpeed] = useStV(1);
   const tr = useRfV();
   // Refs so the rAF loop reads the latest values without restarting on toggle.
@@ -19,7 +25,7 @@ function RoundViewer({ match, initialRound = 1 }) {
   speedRef.current = speed;
   durationRef.current = round.duration;
 
-  useEfV(() => { setT(0); }, [roundN]);
+  useEfV(() => { setT(round.freezetimeEndT || 0); }, [roundN]);
 
   // Single continuous rAF loop — never restart on play/pause toggle. The old
   // version re-created the loop on every toggle, which lost ticks and burned
@@ -171,8 +177,8 @@ function RoundViewer({ match, initialRound = 1 }) {
               <div className="scrub-time"><b>{t.toFixed(1)}</b><span className="e"> / {round.duration.toFixed(1)}s</span></div>
               <div className="scrub-track" onClick={onSeek} ref={tr}>
                 <div className="scrub-fill" style={{width: `${(t/round.duration)*100}%`}}/>
-                {/* freeze time */}
-                <div className="scrub-mk freeze" style={{left: `${(7/round.duration)*100}%`}}>
+                {/* freeze time — actual end derived from csda freezeTimeEndTick */}
+                <div className="scrub-mk freeze" style={{left: `${((round.freezetimeEndT || 0)/round.duration)*100}%`}}>
                   <span className="lbl" style={{color:'var(--subtle)'}}>FREEZE</span>
                 </div>
                 {round.bombPlantT != null && (

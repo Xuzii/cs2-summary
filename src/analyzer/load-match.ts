@@ -471,7 +471,9 @@ function readRound(value: unknown): Round {
   return {
     number: readNumber(value, ['number']) ?? 0,
     startTick: readNumber(value, ['startTick', 'start_tick']),
+    freezeTimeEndTick: readNumber(value, ['freezeTimeEndTick', 'freeze_time_end_tick']),
     endTick: readNumber(value, ['endTick', 'end_tick']),
+    endOfficiallyTick: readNumber(value, ['endOfficiallyTick', 'end_officially_tick']),
     teamAScore: readNumber(value, ['teamAScore', 'team_a_score']),
     teamBScore: readNumber(value, ['teamBScore', 'team_b_score']),
     teamASide: readNumber(value, ['teamASide', 'team_a_side']) as TeamSide | undefined,

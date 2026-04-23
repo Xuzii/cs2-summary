@@ -135,6 +135,12 @@ export interface PlaybackRound {
   halftime?: boolean;
   endReason: string;
   duration: number;
+  /**
+   * Seconds from round start to the moment freeze time ends (players can
+   * move). Derived from csda's `freezeTimeEndTick`; falls back to the first
+   * timestamp where position data shows any player moving.
+   */
+  freezetimeEndT: number;
   bomb: { planted: boolean; site?: 'A' | 'B'; defused?: boolean };
   bombPlantT: number | null;
   bombDefuseT: number | null;
@@ -233,7 +239,16 @@ export function computePlayback(match: Match): PlaybackData {
     rounds: rounds.map((r, idx) => {
       const n = r.number || idx + 1;
       const startTick = r.startTick ?? 0;
-      const duration = r.duration ?? 0;
+      const rawDuration = r.duration ?? 0;
+      // csda emits round.duration in milliseconds; normalise to seconds so
+      // every timestamp in the PlaybackRound shares one unit system. Older
+      // exports sometimes omit duration — fall back to tick span.
+      const durationFromTicks = r.endTick !== undefined && startTick
+        ? Math.max(0, (r.endTick - startTick) / tickrate)
+        : 0;
+      const durationSec = rawDuration > 300 ? rawDuration / 1000
+        : rawDuration > 0 ? rawDuration
+        : durationFromTicks;
       const relT = (tick: number | undefined): number =>
         tick !== undefined && startTick ? Math.max(0, (tick - startTick) / tickrate) : 0;
 
@@ -317,6 +332,41 @@ export function computePlayback(match: Match): PlaybackData {
         infernoFrames: infernoFramesByRound.get(n) ?? [],
       });
 
+      // Freeze-time end: prefer csda's `freezeTimeEndTick` (authoritative).
+      // Fallback: first tick where any player's (x,y) diverges from their
+      // frame-0 position — keeps older exports without the field working.
+      let freezetimeEndT =
+        r.freezeTimeEndTick !== undefined && startTick
+          ? Math.max(0, (r.freezeTimeEndTick - startTick) / tickrate)
+          : 0;
+      if (freezetimeEndT === 0 && tracks.length > 0) {
+        let firstMoveT = Number.POSITIVE_INFINITY;
+        for (const trk of tracks) {
+          const pts = trk.points;
+          if (pts.length < 2) continue;
+          const x0 = pts[0]!.x;
+          const y0 = pts[0]!.y;
+          for (let i = 1; i < pts.length; i++) {
+            if (Math.abs(pts[i]!.x - x0) > 1 || Math.abs(pts[i]!.y - y0) > 1) {
+              if (pts[i]!.t < firstMoveT) firstMoveT = pts[i]!.t;
+              break;
+            }
+          }
+        }
+        if (Number.isFinite(firstMoveT)) freezetimeEndT = firstMoveT;
+      }
+
+      // Extend the effective duration to cover the full position capture
+      // window. csda samples positions through `endOfficiallyTick` (~7s past
+      // `endTick`); if the viewer's scrubber clamps at the shorter `duration`,
+      // trailing movement after the round officially ends goes unseen.
+      let effectiveDuration = durationSec;
+      const maxPointT = Math.max(
+        0,
+        ...tracks.flatMap((t) => t.points.map((p) => p.t ?? 0)),
+      );
+      if (maxPointT > effectiveDuration) effectiveDuration = maxPointT;
+
       const plant = bombsPlanted.find((b) => b.roundNumber === n);
       const defuse = bombsDefused.find((b) => b.roundNumber === n);
       const bombPlantT = plant ? relT(plant.tick) : null;
@@ -324,7 +374,7 @@ export function computePlayback(match: Match): PlaybackData {
 
       const events: PlaybackEvent[] = [
         { t: 0, kind: 'freeze-start', label: 'FREEZETIME' },
-        { t: 7, kind: 'round-start', label: 'ROUND START' },
+        { t: freezetimeEndT, kind: 'round-start', label: 'ROUND START' },
       ];
       for (const d of deaths) {
         events.push({
@@ -345,7 +395,7 @@ export function computePlayback(match: Match): PlaybackData {
       if (bombDefuseT !== null) {
         events.push({ t: bombDefuseT, kind: 'defuse', label: 'BOMB DEFUSED' });
       }
-      events.push({ t: duration, kind: 'end', label: prettyEndReason(r.endReason).toUpperCase() });
+      events.push({ t: effectiveDuration, kind: 'end', label: prettyEndReason(r.endReason).toUpperCase() });
       events.sort((a, b) => a.t - b.t);
 
       const damageDealt: Record<string, number> = {};
@@ -356,7 +406,8 @@ export function computePlayback(match: Match): PlaybackData {
         winner: sideOf(r.winnerSide),
         halftime: undefined,
         endReason: prettyEndReason(r.endReason),
-        duration,
+        duration: effectiveDuration,
+        freezetimeEndT,
         bomb: { planted: !!plant, site: plant?.site ?? r.bombSite, defused: !!defuse },
         bombPlantT,
         bombDefuseT,
